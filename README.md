@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # FlagForge — Feature Flag Management Platform
 
 A feature flag platform: create flags, flip them per environment without a
@@ -147,9 +146,5 @@ Since this needs to be reachable for review/demo, not just run locally:
 2. Build command `npm run build`, output directory `dist`.
 3. Set env var `VITE_API_URL` to your deployed backend URL.
 
-## What's next (Milestone 2, not in this repo yet)
 
-- Real targeting rules: percentage rollout, user-group membership checks
-- Redis caching of evaluation results on the hot path
-- Auth / roles for who can toggle what
 
