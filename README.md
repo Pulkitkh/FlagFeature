@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # FlagForge — Feature Flag Management Platform
 
 A feature flag platform: create flags, flip them per environment without a
@@ -151,3 +152,4 @@ Since this needs to be reachable for review/demo, not just run locally:
 - Real targeting rules: percentage rollout, user-group membership checks
 - Redis caching of evaluation results on the hot path
 - Auth / roles for who can toggle what
+
