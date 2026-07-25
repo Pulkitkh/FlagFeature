@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Users, Percent, Play } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Play } from 'lucide-react'
 import { api } from '../api/client'
 import FlagForm from '../components/FlagForm'
 import Navbar from '../components/Navbar'
@@ -26,7 +26,6 @@ export default function FlagDetailPage() {
   const [targetingError, setTargetingError] = useState(null)
   const [targetingRules, setTargetingRules] = useState({ user_ids: [], group_keys: [], percentage: null })
   const [availableGroups, setAvailableGroups] = useState([])
-  const [userGroupMemberships, setUserGroupMemberships] = useState([])
   const [userIdInput, setUserIdInput] = useState('')
   const [selectedGroupKeys, setSelectedGroupKeys] = useState([])
   const [extraGroupKeysInput, setExtraGroupKeysInput] = useState('')
@@ -73,12 +72,10 @@ export default function FlagDetailPage() {
     Promise.all([
       api.getTargetingRules(flag.key, selectedEnv.key),
       api.listEnvironmentGroups(selectedEnv.key),
-      api.listUserGroups(selectedEnv.key),
     ])
-      .then(([rules, groups, memberships]) => {
+      .then(([rules, groups]) => {
         const mergedGroups = Array.from(new Set([...(groups || []), ...(rules.group_keys || [])])).sort()
         setAvailableGroups(mergedGroups)
-        setUserGroupMemberships(memberships || [])
         setTargetingRules(rules)
         setUserIdInput((rules.user_ids || []).join(', '))
         setSelectedGroupKeys((rules.group_keys || []).filter((group) => mergedGroups.includes(group)))
@@ -89,7 +86,6 @@ export default function FlagDetailPage() {
       .catch((err) => {
         if (isNotFoundError(err)) {
           setAvailableGroups([])
-          setUserGroupMemberships([])
           setTargetingRules({ user_ids: [], group_keys: [], percentage: null })
           setUserIdInput('')
           setSelectedGroupKeys([])
@@ -159,7 +155,13 @@ export default function FlagDetailPage() {
       setSelectedGroupKeys(rules.group_keys || [])
       setExtraGroupKeysInput('')
       setPercentage(rules.percentage ?? 0)
-      setEvalResult(resolveLocally(testUserId, rules, userGroupMemberships, selectedEnv.key, flag.key))
+      const refreshed = await api.evaluateFlag({
+        flag_key: flag.key,
+        environment_key: selectedEnv.key,
+        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
+      })
+      setEvalResult(refreshed)
+      setTestResult(refreshed)
     } catch (err) {
       setTargetingError(err.message)
     } finally {
@@ -173,7 +175,12 @@ export default function FlagDetailPage() {
     setTestLoading(true)
     setTestError(null)
     try {
-      setTestResult(resolveLocally(testUserId, targetingRules, userGroupMemberships, selectedEnv.key, flag.key))
+      const result = await api.evaluateFlag({
+        flag_key: flag.key,
+        environment_key: selectedEnv.key,
+        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
+      })
+      setTestResult(result)
     } catch (err) {
       setTestResult(null)
       setTestError(err.message)
@@ -196,7 +203,7 @@ export default function FlagDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
         <div className="p-6">
-          <Card className="border-bad/20 bg-red-50 text-sm text-bad">
+          <Card className="border-bad/20 bg-badSoft text-sm text-bad">
             {error || 'Flag not found'}
           </Card>
         </div>
@@ -222,7 +229,7 @@ export default function FlagDetailPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-mono text-xl font-semibold text-ink">{flag.key}</h1>
-                <Badge tone={flag.enabled ? 'good' : 'neutral'}>
+                <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
                   {flag.enabled ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>
@@ -268,7 +275,7 @@ export default function FlagDetailPage() {
                       <p className="font-mono text-lg font-semibold text-accent">
                         {JSON.stringify(evalResult.value)}
                       </p>
-                      <Badge tone={evalResult.cached ? 'warn' : 'good'}>
+                      <Badge tone={evalResult.cached ? 'warn' : 'good'} dot live={!evalResult.cached}>
                         {evalResult.cached ? 'Cached' : 'Live'}
                       </Badge>
                     </div>
@@ -311,7 +318,7 @@ export default function FlagDetailPage() {
           >
             <Card>
               {targetingLoading ? (
-                <div className="h-44 animate-pulse rounded-2xl bg-hoverBg" />
+                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : (
                 <div className="space-y-5">
                   <div className="flex items-center justify-between gap-3">
@@ -381,7 +388,7 @@ export default function FlagDetailPage() {
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {parseList(userIdInput).map((userId) => (
-                            <Badge key={userId} tone="accent" className="rounded-full px-3 py-1">
+                            <Badge key={userId} tone="accent">
                               {userId}
                             </Badge>
                           ))}
@@ -396,7 +403,7 @@ export default function FlagDetailPage() {
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {[...selectedGroupKeys, ...parseList(extraGroupKeysInput)].map((group) => (
-                            <Badge key={group} tone="good" className="rounded-full px-3 py-1">
+                            <Badge key={group} tone="good">
                               {group}
                             </Badge>
                           ))}
@@ -416,7 +423,7 @@ export default function FlagDetailPage() {
                         max="100"
                         value={percentage}
                         onChange={(e) => setPercentage(Number(e.target.value))}
-                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-indigo-500"
+                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
                       />
                       <div className="flex items-center justify-between text-xs text-muted">
                         <span>0%</span>
@@ -454,7 +461,7 @@ export default function FlagDetailPage() {
                 </Field>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-dashed border-border bg-white/70 p-4">
+              <div className="mt-4 rounded-xl border border-dashed border-border bg-surfaceMuted p-4">
                 {testLoading ? (
                   <div className="h-14 animate-pulse rounded-xl bg-hoverBg" />
                 ) : testResult ? (
@@ -463,7 +470,7 @@ export default function FlagDetailPage() {
                       <p className="font-mono text-2xl font-semibold text-accent">
                         {JSON.stringify(testResult.value)}
                       </p>
-                      <Badge tone={testResult.cached ? 'warn' : 'good'}>
+                      <Badge tone={testResult.cached ? 'warn' : 'good'} dot live={!testResult.cached}>
                         {testResult.cached ? 'Cached' : 'Live'}
                       </Badge>
                     </div>
@@ -530,32 +537,6 @@ export default function FlagDetailPage() {
       )}
     </div>
   )
-}
-
-function resolveLocally(userId, rules, memberships, environmentKey, flagKey) {
-  const trimmedUserId = (userId || '').trim()
-  const groupMap = new Map((memberships || []).map((group) => [group.group_key, group.user_ids || []]))
-  const userGroups = new Set()
-
-  for (const [groupKey, userIds] of groupMap.entries()) {
-    if (userIds.includes(trimmedUserId)) userGroups.add(groupKey)
-  }
-
-  if (trimmedUserId && (rules.user_ids || []).includes(trimmedUserId)) {
-    return { flag_key: flagKey, environment_key: environmentKey, value: true, reason: 'user_targeting', cached: false }
-  }
-
-  if ([...(rules.group_keys || [])].some((group) => userGroups.has(group))) {
-    return { flag_key: flagKey, environment_key: environmentKey, value: true, reason: 'group_targeting', cached: false }
-  }
-
-  return {
-    flag_key: flagKey,
-    environment_key: environmentKey,
-    value: false,
-    reason: 'not_whitelisted_or_grouped',
-    cached: false,
-  }
 }
 
 function isNotFoundError(err) {

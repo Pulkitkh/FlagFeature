@@ -1,72 +1,51 @@
 import { NavLink } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Flag, Layers, Clock, Zap, Sparkles, Users } from 'lucide-react'
+import { Flag, Layers, Clock, Users } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/flags', label: 'Flags', icon: Flag },
   { to: '/environments', label: 'Environments', icon: Layers },
-  { to: '/groups', label: 'User Groups', icon: Users },
-  { to: '/audit-log', label: 'Audit Log', icon: Clock },
+  { to: '/groups', label: 'User groups', icon: Users },
+  { to: '/audit-log', label: 'Audit log', icon: Clock },
 ]
 
 export default function Sidebar() {
   return (
-    <aside className="hidden w-72 shrink-0 flex-col p-4 lg:flex">
-      <motion.div
-        initial={{ opacity: 0, x: -8 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.25 }}
-        className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/80 bg-white/70 shadow-floating backdrop-blur-xl"
-      >
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-br from-indigo-100/75 via-violet-50 to-cyan-50" />
-        <div className="relative flex items-center gap-3 px-5 pb-7 pt-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-glow">
-            <Zap className="h-5 w-5" fill="currentColor" strokeWidth={0} />
-          </div>
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-3 lg:flex">
+      <div className="flex flex-col h-full rounded-xl border border-border bg-surface">
+        <div className="flex items-center gap-2.5 px-4 pb-5 pt-5">
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink text-white">
+            <Flag className="h-4 w-4" strokeWidth={2.25} />
+            <span className="signal-dot signal-dot--live absolute -right-0.5 -top-0.5 bg-accent ring-2 ring-surface" />
+          </span>
           <div>
-            <span className="block text-lg font-bold tracking-tight text-ink">FlagForge</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Release studio</span>
+            <span className="block font-display text-[15px] font-semibold leading-tight tracking-tight text-ink">FlagForge</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Release console</span>
           </div>
         </div>
 
-        <div className="relative mx-4 mb-6 rounded-2xl border border-white/80 bg-white/70 p-3.5 shadow-soft">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-ink">Product workspace</p>
-              <p className="text-[11px] text-muted">Ship with confidence</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-5 pb-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
+        <div className="px-4 pb-2 pt-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
             Manage releases
           </span>
         </div>
 
-        <nav className="flex flex-col gap-0.5 px-3">
+        <nav className="flex flex-col gap-0.5 px-2.5">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ${
+                `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 ${
                   isActive
-                    ? 'bg-gradient-to-r from-indigo-500 to-violet-500 font-semibold text-white shadow-glow'
-                    : 'text-muted hover:bg-white hover:text-ink hover:shadow-soft'
+                    ? 'bg-accentSoft font-semibold text-accentDark'
+                    : 'text-muted hover:bg-surfaceMuted hover:text-ink'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon
-                    className={`h-4 w-4 transition-colors ${
-                      isActive ? 'text-white' : 'text-muted group-hover:text-accent'
-                    }`}
-                  />
+                  <span className={`absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full transition-opacity ${isActive ? 'bg-accent opacity-100' : 'opacity-0'}`} />
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-accent' : 'text-muted group-hover:text-ink'}`} />
                   {label}
                 </>
               )}
@@ -74,14 +53,18 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        <div className="mt-auto p-4">
-          <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 p-4 text-white shadow-card">
-            <p className="text-xs font-semibold">Milestone 1</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-indigo-200">Your release command center is ready.</p>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full w-2/3 rounded-full bg-gradient-to-r from-cyan-300 to-violet-300" /></div>
+        <div className="mt-auto p-3">
+          <div className="rounded-lg border border-border bg-surfaceMuted p-3.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+              <span className="signal-dot signal-dot--live bg-good" />
+              Milestone 2
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              Targeting, rollouts, and caching are live.
+            </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     </aside>
   )
 }

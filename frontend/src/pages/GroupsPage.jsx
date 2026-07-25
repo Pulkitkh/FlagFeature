@@ -152,13 +152,13 @@ export default function GroupsPage() {
                 <Badge tone="good">{groups.length} groups</Badge>
               </div>
               {loading ? (
-                <div className="h-44 animate-pulse rounded-2xl bg-hoverBg" />
+                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : groups.length === 0 ? (
                 <p className="text-sm text-muted">No groups yet.</p>
               ) : (
                 <div className="space-y-3">
                   {groups.map((group) => (
-                    <div key={group.group_key} className="rounded-2xl border border-border bg-white/70 p-4">
+                    <div key={group.group_key} className="rounded-xl border border-border bg-surfaceMuted p-4">
                       <div className="mb-2 flex items-center justify-between">
                         <p className="font-mono text-sm font-semibold text-ink">{group.group_key}</p>
                         <Badge tone="accent">{group.user_ids.length} users</Badge>
@@ -167,12 +167,12 @@ export default function GroupsPage() {
                         {group.user_ids.map((userId) => (
                           <span
                             key={userId}
-                            className="inline-flex items-center gap-2 rounded-full border border-border bg-bg px-3 py-1 text-xs text-ink"
+                            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1 text-xs text-ink"
                           >
                             {userId}
                             <button
                               type="button"
-                              className="text-bad hover:text-rose-700"
+                              className="text-bad hover:text-bad/70"
                               onClick={() => handleRemove(group.group_key, userId)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />

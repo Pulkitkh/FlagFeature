@@ -11,6 +11,14 @@ const ACTION_META = {
   deleted: { tone: 'bad', icon: Trash2, label: 'deleted' },
 }
 
+const ICON_TONE_CLASSES = {
+  good: 'bg-goodSoft text-good border-good/20',
+  bad: 'bg-badSoft text-bad border-bad/20',
+  warn: 'bg-warnSoft text-warn border-warn/20',
+  accent: 'bg-accentSoft text-accentDark border-accent/20',
+  neutral: 'bg-surfaceMuted text-muted border-border',
+}
+
 function relativeTime(dateStr) {
   const date = new Date(dateStr)
   const diffMs = Date.now() - date.getTime()
@@ -62,8 +70,11 @@ export default function AuditLogPage() {
             />
           ) : (
             <Card padded={false} className="overflow-hidden">
-              <div className="border-b border-border/70 bg-gradient-to-r from-indigo-50 via-white to-violet-50 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Release activity</div>
-              <ul className="divide-y divide-border/70">
+              <div className="border-b border-border bg-surfaceMuted px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                Release activity ledger
+              </div>
+              <ul className="relative px-5">
+                <span className="absolute bottom-6 left-9 top-6 w-px bg-border" aria-hidden="true" />
                 {entries.map((entry) => {
                   const meta = ACTION_META[entry.action] || {
                     tone: 'neutral',
@@ -72,11 +83,13 @@ export default function AuditLogPage() {
                   }
                   const Icon = meta.icon
                   return (
-                    <li key={entry.id} className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-indigo-50/60">
-                      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${meta.tone === 'good' ? 'bg-emerald-100 text-good' : meta.tone === 'bad' ? 'bg-rose-100 text-bad' : meta.tone === 'warn' ? 'bg-amber-100 text-warn' : 'bg-indigo-100 text-accent'}`}>
+                    <li key={entry.id} className="relative flex items-start gap-3 py-4">
+                      <div
+                        className={`relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${ICON_TONE_CLASSES[meta.tone]}`}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 border-b border-border/70 pb-4 last:border-0 last:pb-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge tone={meta.tone}>{meta.label}</Badge>
                           <span className="font-mono text-sm text-ink">
@@ -86,7 +99,7 @@ export default function AuditLogPage() {
                         <p className="mt-1 text-xs text-muted">by {entry.actor}</p>
                       </div>
                       <span
-                        className="shrink-0 text-xs text-muted"
+                        className="shrink-0 font-mono text-xs text-muted"
                         title={new Date(entry.timestamp).toLocaleString()}
                       >
                         {relativeTime(entry.timestamp)}

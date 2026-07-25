@@ -1,11 +1,11 @@
 const baseInputClasses =
-  'w-full rounded-xl border border-white/80 bg-white/80 px-3 py-2.5 text-sm text-ink shadow-soft outline-none placeholder:text-muted/70 transition-all focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100'
+  'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink shadow-hairline outline-none placeholder:text-muted/70 transition-colors focus:border-accent focus:ring-2 focus:ring-accentSoft'
 
 export function Field({ label, hint, error, children }) {
   return (
     <label className="block">
       {label && (
-        <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted">
+        <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
           {label}
         </span>
       )}
@@ -42,13 +42,11 @@ export function Switch({ checked, onChange, label }) {
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-          checked ? 'bg-gradient-to-r from-accent to-violet-500' : 'bg-border'
+          checked ? 'bg-accent' : 'bg-border'
         }`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-4.5' : 'translate-x-1'
-          }`}
+          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
           style={{ transform: checked ? 'translateX(18px)' : 'translateX(4px)' }}
         />
       </span>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Layers, Flag, Activity, Plus, Pencil } from 'lucide-react'
-import { motion } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
 import { api } from '../api/client'
@@ -135,14 +134,14 @@ export default function EnvironmentsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-white/70">
+              <div className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
                 {previewLoading ? (
                   <div className="p-4 text-sm text-muted">Loading preview…</div>
                 ) : flagPreview.length === 0 ? (
                   <div className="p-4 text-sm text-muted">No preview available yet.</div>
                 ) : (
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-border bg-bg/70 text-xs uppercase tracking-wide text-muted">
+                    <thead className="border-b border-border bg-surfaceMuted text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
                       <tr>
                         <th className="px-4 py-3">Environment</th>
                         <th className="px-4 py-3">Resolved value</th>
@@ -157,10 +156,10 @@ export default function EnvironmentsPage() {
                           className="border-b border-border last:border-0"
                         >
                           <td className="px-4 py-3 font-medium text-ink">{environments[index]?.name}</td>
-                          <td className="px-4 py-3 font-mono text-accent">{JSON.stringify(result.value)}</td>
-                          <td className="px-4 py-3 text-muted">{result.reason}</td>
+                          <td className="px-4 py-3 font-mono text-accentDark">{JSON.stringify(result.value)}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-muted">{result.reason}</td>
                           <td className="px-4 py-3">
-                            <Badge tone={result.cached ? 'warn' : 'good'}>
+                            <Badge tone={result.cached ? 'warn' : 'good'} dot live={!result.cached}>
                               {result.cached ? 'Cached' : 'Live'}
                             </Badge>
                           </td>
@@ -176,67 +175,60 @@ export default function EnvironmentsPage() {
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-40 animate-pulse rounded-3xl bg-white/60" />
+                <div key={i} className="h-40 animate-pulse rounded-xl border border-border bg-surfaceMuted" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {environments.map((env, i) => (
-                <motion.div
-                  key={env.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.05 }}
-                >
-                  <Card className="group h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-floating">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-soft">
-                          <Layers className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-mono text-sm font-semibold text-ink">{env.key}</p>
-                          <p className="text-xs text-muted">{env.name}</p>
-                        </div>
+              {environments.map((env) => (
+                <Card key={env.id} className="h-full transition-shadow hover:shadow-card">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-ink">
+                        <Layers className="h-4 w-4" />
                       </div>
-                      <Badge tone={ENV_ICON_TONE[env.key] || 'neutral'}>
-                        {env.key === 'production' ? 'Live' : 'Active'}
-                      </Badge>
+                      <div>
+                        <p className="font-mono text-sm font-semibold text-ink">{env.key}</p>
+                        <p className="text-xs text-muted">{env.name}</p>
+                      </div>
                     </div>
-                    <div className="mt-3 flex justify-end">
-                      <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openEdit(env)}>
-                        Edit
-                      </Button>
-                    </div>
+                    <Badge tone={ENV_ICON_TONE[env.key] || 'neutral'} dot live={env.key === 'production'}>
+                      {env.key === 'production' ? 'Live' : 'Active'}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openEdit(env)}>
+                      Edit
+                    </Button>
+                  </div>
 
-                    <div className="mt-5 space-y-2 border-t border-border/70 pt-4 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-muted">
-                          <Flag className="h-3.5 w-3.5 text-violet-500" /> Flags available
-                        </span>
-                        <span className="font-medium text-ink">
-                          {flagCount === null ? '—' : flagCount}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-muted">
-                          <Activity className="h-3.5 w-3.5 text-cyan-500" /> API health
-                        </span>
-                        <span
-                          className={`font-medium ${
-                            apiHealthy === null ? 'text-muted' : apiHealthy ? 'text-good' : 'text-bad'
-                          }`}
-                        >
-                          {apiHealthy === null ? 'Checking…' : apiHealthy ? 'Healthy' : 'Degraded'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-muted">
-                        <span>Last deployment</span>
-                        <span className="text-xs">Not tracked in Milestone 1</span>
-                      </div>
+                  <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-muted">
+                        <Flag className="h-3.5 w-3.5" /> Flags available
+                      </span>
+                      <span className="font-medium text-ink">
+                        {flagCount === null ? '—' : flagCount}
+                      </span>
                     </div>
-                  </Card>
-                </motion.div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-muted">
+                        <Activity className="h-3.5 w-3.5" /> API health
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          apiHealthy === null ? 'text-muted' : apiHealthy ? 'text-good' : 'text-bad'
+                        }`}
+                      >
+                        {apiHealthy === null ? 'Checking…' : apiHealthy ? 'Healthy' : 'Degraded'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-muted">
+                      <span>Last deployment</span>
+                      <span className="text-xs">Not tracked yet</span>
+                    </div>
+                  </div>
+                </Card>
               ))}
             </div>
           )}
