@@ -1,17 +1,11 @@
-import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 
 const VARIANTS = {
-  primary:
-    'border border-white/20 bg-gradient-to-r from-accent via-indigo-500 to-violet-500 text-white shadow-glow hover:brightness-105 disabled:hover:brightness-100',
-  secondary:
-    'border border-white/80 bg-white/75 text-ink shadow-soft backdrop-blur hover:bg-white',
-  danger:
-    'border border-rose-200 bg-rose-50/85 text-bad hover:bg-rose-100',
-  success:
-    'border border-emerald-300/50 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-soft hover:brightness-105',
-  ghost:
-    'text-muted hover:bg-white/75 hover:text-ink',
+  primary: 'border border-accentDark bg-accent text-white shadow-hairline hover:bg-accentDark disabled:hover:bg-accent',
+  secondary: 'border border-border bg-surface text-ink shadow-hairline hover:border-borderStrong hover:bg-surfaceMuted',
+  danger: 'border border-bad/25 bg-badSoft text-bad hover:bg-bad hover:text-white hover:border-bad',
+  success: 'border border-good/25 bg-goodSoft text-good hover:bg-good hover:text-white hover:border-good',
+  ghost: 'border border-transparent text-muted hover:bg-surfaceMuted hover:text-ink',
 }
 
 const SIZES = {
@@ -31,11 +25,9 @@ export default function Button({
   ...props
 }) {
   return (
-    <motion.button
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.97 }}
+    <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     >
       {loading ? (
@@ -44,6 +36,6 @@ export default function Button({
         Icon && <Icon className="h-4 w-4" />
       )}
       {children}
-    </motion.button>
+    </button>
   )
 }

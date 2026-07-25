@@ -26,7 +26,6 @@ export default function FlagDetailPage() {
   const [targetingError, setTargetingError] = useState(null)
   const [targetingRules, setTargetingRules] = useState({ user_ids: [], group_keys: [], percentage: null })
   const [availableGroups, setAvailableGroups] = useState([])
-  const [userGroupMemberships, setUserGroupMemberships] = useState([])
   const [userIdInput, setUserIdInput] = useState('')
   const [selectedGroupKeys, setSelectedGroupKeys] = useState([])
   const [extraGroupKeysInput, setExtraGroupKeysInput] = useState('')
@@ -73,12 +72,10 @@ export default function FlagDetailPage() {
     Promise.all([
       api.getTargetingRules(flag.key, selectedEnv.key),
       api.listEnvironmentGroups(selectedEnv.key),
-      api.listUserGroups(selectedEnv.key),
     ])
-      .then(([rules, groups, memberships]) => {
+      .then(([rules, groups]) => {
         const mergedGroups = Array.from(new Set([...(groups || []), ...(rules.group_keys || [])])).sort()
         setAvailableGroups(mergedGroups)
-        setUserGroupMemberships(memberships || [])
         setTargetingRules(rules)
         setUserIdInput((rules.user_ids || []).join(', '))
         setSelectedGroupKeys((rules.group_keys || []).filter((group) => mergedGroups.includes(group)))
@@ -89,7 +86,6 @@ export default function FlagDetailPage() {
       .catch((err) => {
         if (isNotFoundError(err)) {
           setAvailableGroups([])
-          setUserGroupMemberships([])
           setTargetingRules({ user_ids: [], group_keys: [], percentage: null })
           setUserIdInput('')
           setSelectedGroupKeys([])
@@ -159,7 +155,13 @@ export default function FlagDetailPage() {
       setSelectedGroupKeys(rules.group_keys || [])
       setExtraGroupKeysInput('')
       setPercentage(rules.percentage ?? 0)
-      setEvalResult(resolveLocally(testUserId, rules, userGroupMemberships, selectedEnv.key, flag.key))
+      const refreshed = await api.evaluateFlag({
+        flag_key: flag.key,
+        environment_key: selectedEnv.key,
+        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
+      })
+      setEvalResult(refreshed)
+      setTestResult(refreshed)
     } catch (err) {
       setTargetingError(err.message)
     } finally {
@@ -173,7 +175,12 @@ export default function FlagDetailPage() {
     setTestLoading(true)
     setTestError(null)
     try {
-      setTestResult(resolveLocally(testUserId, targetingRules, userGroupMemberships, selectedEnv.key, flag.key))
+      const result = await api.evaluateFlag({
+        flag_key: flag.key,
+        environment_key: selectedEnv.key,
+        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
+      })
+      setTestResult(result)
     } catch (err) {
       setTestResult(null)
       setTestError(err.message)
@@ -416,7 +423,7 @@ export default function FlagDetailPage() {
                         max="100"
                         value={percentage}
                         onChange={(e) => setPercentage(Number(e.target.value))}
-                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-indigo-500"
+                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
                       />
                       <div className="flex items-center justify-between text-xs text-muted">
                         <span>0%</span>
@@ -454,7 +461,7 @@ export default function FlagDetailPage() {
                 </Field>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-dashed border-border bg-white/70 p-4">
+              <div className="mt-4 rounded-xl border border-dashed border-border bg-surfaceMuted p-4">
                 {testLoading ? (
                   <div className="h-14 animate-pulse rounded-xl bg-hoverBg" />
                 ) : testResult ? (
@@ -530,32 +537,6 @@ export default function FlagDetailPage() {
       )}
     </div>
   )
-}
-
-function resolveLocally(userId, rules, memberships, environmentKey, flagKey) {
-  const trimmedUserId = (userId || '').trim()
-  const groupMap = new Map((memberships || []).map((group) => [group.group_key, group.user_ids || []]))
-  const userGroups = new Set()
-
-  for (const [groupKey, userIds] of groupMap.entries()) {
-    if (userIds.includes(trimmedUserId)) userGroups.add(groupKey)
-  }
-
-  if (trimmedUserId && (rules.user_ids || []).includes(trimmedUserId)) {
-    return { flag_key: flagKey, environment_key: environmentKey, value: true, reason: 'user_targeting', cached: false }
-  }
-
-  if ([...(rules.group_keys || [])].some((group) => userGroups.has(group))) {
-    return { flag_key: flagKey, environment_key: environmentKey, value: true, reason: 'group_targeting', cached: false }
-  }
-
-  return {
-    flag_key: flagKey,
-    environment_key: environmentKey,
-    value: false,
-    reason: 'not_whitelisted_or_grouped',
-    cached: false,
-  }
 }
 
 function isNotFoundError(err) {
