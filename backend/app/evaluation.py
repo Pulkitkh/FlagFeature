@@ -1,11 +1,10 @@
 import hashlib
-import json
 
 from sqlalchemy.orm import Session
 
 from app import crud
 
-EVALUATION_RULESET_VERSION = "v2_whitelist_groups"
+EVALUATION_RULESET_VERSION = "v3_percentage_env_override"
 
 
 class FlagNotFoundError(Exception):
@@ -24,12 +23,12 @@ def evaluate_flag(
 ) -> dict:
     """Resolve the value of a flag for a given environment and user.
 
-    Priority order:
-        1. User targeting
-        2. Group targeting
-        3. Percentage rollout
-        4. Environment override
-        5. Default value
+    Priority order (first match wins):
+        1. User targeting      - user_id is explicitly whitelisted
+        2. Group targeting     - user_id belongs to a targeted group
+        3. Percentage rollout  - user_id's deterministic bucket falls in range
+        4. Environment override - an explicit on/off (or pinned value) for this environment
+        5. Default value       - the flag's global default_value
     """
     user_context = user_context or {}
 
@@ -81,33 +80,44 @@ def evaluate_flag(
 
     targeting_rules = crud.get_targeting_rules(db, flag, environment)
 
-    if user_id and user_id in targeting_rules["user_ids"]:
-        result = {
-            "flag_key": flag_key,
-            "environment_key": environment_key,
-            "value": True,
-            "reason": "user_targeting",
-            "cached": False,
-        }
-        _cache_result(flag_key, environment_key, user_context, result, cache_scope)
-        return result
+    value = None
+    reason = None
 
-    if membership_group_keys and set(targeting_rules["group_keys"]) & membership_group_keys:
-        result = {
-            "flag_key": flag_key,
-            "environment_key": environment_key,
-            "value": True,
-            "reason": "group_targeting",
-            "cached": False,
-        }
-        _cache_result(flag_key, environment_key, user_context, result, cache_scope)
-        return result
+    # 1. User targeting
+    if user_id and user_id in targeting_rules["user_ids"]:
+        value, reason = True, "user_targeting"
+
+    # 2. Group targeting
+    elif membership_group_keys and set(targeting_rules["group_keys"]) & membership_group_keys:
+        value, reason = True, "group_targeting"
+
+    # 3. Percentage rollout (needs a user_id to bucket deterministically)
+    elif targeting_rules["percentage"] is not None and user_id:
+        bucket = _deterministic_bucket(user_id, flag_key)
+        if bucket < targeting_rules["percentage"]:
+            value, reason = True, "percentage_rollout"
+
+    # 4. Environment override
+    if value is None:
+        override = crud.get_environment_override(db, flag.id, environment.id)
+        if override is not None:
+            override_enabled = (override.conditions or {}).get("enabled")
+            if override_enabled is False:
+                value = override.value if override.value is not None else False
+                reason = "environment_override_disabled"
+            elif override_enabled is True:
+                value = override.value if override.value is not None else True
+                reason = "environment_override_enabled"
+
+    # 5. Default value
+    if value is None:
+        value, reason = flag.default_value, "default_value"
 
     result = {
         "flag_key": flag_key,
         "environment_key": environment_key,
-        "value": False,
-        "reason": "not_whitelisted_or_grouped",
+        "value": value,
+        "reason": reason,
         "cached": False,
     }
     _cache_result(flag_key, environment_key, user_context, result, cache_scope)
@@ -115,6 +125,12 @@ def evaluate_flag(
 
 
 def _deterministic_bucket(user_id: str, flag_key: str) -> float:
+    """Map a user into a stable [0, 100) bucket for a given flag.
+
+    Same user_id + flag_key always hashes to the same bucket, so a user's
+    rollout status never flips back and forth as the percentage is nudged
+    around them.
+    """
     digest = hashlib.sha256(f"{user_id}:{flag_key}".encode("utf-8")).hexdigest()
     bucket = int(digest[:8], 16) % 10000
     return bucket / 100.0
