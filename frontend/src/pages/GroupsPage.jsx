@@ -152,7 +152,7 @@ export default function GroupsPage() {
                 <Badge tone="good">{groups.length} groups</Badge>
               </div>
               {loading ? (
-                <div className="h-44 animate-pulse rounded-2xl bg-hoverBg" />
+                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : groups.length === 0 ? (
                 <p className="text-sm text-muted">No groups yet.</p>
               ) : (

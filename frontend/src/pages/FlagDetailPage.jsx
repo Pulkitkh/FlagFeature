@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Users, Percent, Play } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Play } from 'lucide-react'
 import { api } from '../api/client'
 import FlagForm from '../components/FlagForm'
 import Navbar from '../components/Navbar'
@@ -203,7 +203,7 @@ export default function FlagDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
         <div className="p-6">
-          <Card className="border-bad/20 bg-red-50 text-sm text-bad">
+          <Card className="border-bad/20 bg-badSoft text-sm text-bad">
             {error || 'Flag not found'}
           </Card>
         </div>
@@ -229,7 +229,7 @@ export default function FlagDetailPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-mono text-xl font-semibold text-ink">{flag.key}</h1>
-                <Badge tone={flag.enabled ? 'good' : 'neutral'}>
+                <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
                   {flag.enabled ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>
@@ -275,7 +275,7 @@ export default function FlagDetailPage() {
                       <p className="font-mono text-lg font-semibold text-accent">
                         {JSON.stringify(evalResult.value)}
                       </p>
-                      <Badge tone={evalResult.cached ? 'warn' : 'good'}>
+                      <Badge tone={evalResult.cached ? 'warn' : 'good'} dot live={!evalResult.cached}>
                         {evalResult.cached ? 'Cached' : 'Live'}
                       </Badge>
                     </div>
@@ -318,7 +318,7 @@ export default function FlagDetailPage() {
           >
             <Card>
               {targetingLoading ? (
-                <div className="h-44 animate-pulse rounded-2xl bg-hoverBg" />
+                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : (
                 <div className="space-y-5">
                   <div className="flex items-center justify-between gap-3">
@@ -388,7 +388,7 @@ export default function FlagDetailPage() {
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {parseList(userIdInput).map((userId) => (
-                            <Badge key={userId} tone="accent" className="rounded-full px-3 py-1">
+                            <Badge key={userId} tone="accent">
                               {userId}
                             </Badge>
                           ))}
@@ -403,7 +403,7 @@ export default function FlagDetailPage() {
                       ) : (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {[...selectedGroupKeys, ...parseList(extraGroupKeysInput)].map((group) => (
-                            <Badge key={group} tone="good" className="rounded-full px-3 py-1">
+                            <Badge key={group} tone="good">
                               {group}
                             </Badge>
                           ))}
@@ -470,7 +470,7 @@ export default function FlagDetailPage() {
                       <p className="font-mono text-2xl font-semibold text-accent">
                         {JSON.stringify(testResult.value)}
                       </p>
-                      <Badge tone={testResult.cached ? 'warn' : 'good'}>
+                      <Badge tone={testResult.cached ? 'warn' : 'good'} dot live={!testResult.cached}>
                         {testResult.cached ? 'Cached' : 'Live'}
                       </Badge>
                     </div>

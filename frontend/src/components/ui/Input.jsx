@@ -1,10 +1,12 @@
-export function Field({ label, hint, error, required, children }) {
+const baseInputClasses =
+  'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink shadow-hairline outline-none placeholder:text-muted/70 transition-colors focus:border-accent focus:ring-2 focus:ring-accentSoft'
+
+export function Field({ label, hint, error, children }) {
   return (
-    <label className="mb-4 block last:mb-0">
+    <label className="block">
       {label && (
-        <span className="mb-1.5 flex items-center gap-1 text-xs font-semibold text-ink">
+        <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
           {label}
-          {required && <span className="text-bad">*</span>}
         </span>
       )}
       {children}
@@ -14,11 +16,10 @@ export function Field({ label, hint, error, required, children }) {
   )
 }
 
-const baseInputClasses =
-  'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surfaceMuted'
-
 export function Input({ className = '', mono = false, ...props }) {
-  return <input className={`${baseInputClasses} ${mono ? 'font-mono' : ''} ${className}`} {...props} />
+  return (
+    <input className={`${baseInputClasses} ${mono ? 'font-mono' : ''} ${className}`} {...props} />
+  )
 }
 
 export function Textarea({ className = '', ...props }) {
@@ -33,28 +34,23 @@ export function Select({ className = '', children, ...props }) {
   )
 }
 
-export function Switch({ checked, onChange, disabled = false, label }) {
+export function Switch({ checked, onChange, label }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange?.(!checked)}
-      className={`inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50`}
-    >
+    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
       <span
-        className={`relative h-5 w-9 rounded-full border transition-colors ${
-          checked ? 'border-accentDark bg-accent' : 'border-border bg-surfaceMuted'
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+          checked ? 'bg-accent' : 'bg-border'
         }`}
       >
         <span
-          className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-hairline transition-transform ${
-            checked ? 'translate-x-4' : 'translate-x-0.5'
-          }`}
+          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+          style={{ transform: checked ? 'translateX(18px)' : 'translateX(4px)' }}
         />
       </span>
-      {label && <span className="text-sm text-ink">{label}</span>}
-    </button>
+      {label}
+    </label>
   )
 }

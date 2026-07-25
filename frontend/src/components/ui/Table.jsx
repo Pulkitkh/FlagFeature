@@ -5,12 +5,12 @@ export function Table({ columns, children }) {
     <Card padded={false} className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-border bg-surfaceMuted">
-            <tr>
+          <thead className="bg-surfaceMuted">
+            <tr className="border-b border-border">
               {columns.map((col) => (
                 <th
                   key={col}
-                  className="px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted"
+                  className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
                 >
                   {col}
                 </th>
@@ -28,7 +28,7 @@ export function Row({ onClick, children }) {
   return (
     <tr
       onClick={onClick}
-      className={`border-b border-border/80 last:border-b-0 transition-colors ${
+      className={`border-b border-border/70 last:border-b-0 transition-colors ${
         onClick ? 'cursor-pointer hover:bg-accentSoft/60' : ''
       }`}
     >
