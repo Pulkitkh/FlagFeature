@@ -1,9 +1,10 @@
 # FlagForge — Feature Flag Management Platform
 
-A feature flag platform: create flags, flip them per environment without a
-deploy, and see every change in an audit trail. This repo covers **Milestone
-1** — database schema, evaluation engine, and a working create/view flow
-end-to-end (backend + frontend + live API).
+A feature flag platform: create flags, target them by user/group/percentage,
+flip them per environment without a deploy, and see every change in an audit
+trail. This repo covers **Milestones 1 and 2** — schema, evaluation engine
+(with caching), and the full targeting/rollout UI, backend + frontend + live
+API.
 
 ## Stack
 
@@ -51,26 +52,34 @@ flagforge/
 | `environments` | development / staging / production, etc. |
 | `flags` | key, type, default value, global enabled flag, owner |
 | `flag_versions` | snapshot of a flag on every create/update (basic version history) |
-| `targeting_rules` | per-environment rules; Milestone 1 uses `rule_type="environment_override"` to flip a flag on/off (or pin a value) per environment. The generic shape leaves room for Milestone 2's percentage rollout / user-group rules without a schema change |
-| `user_group_memberships` | reserved for Milestone 2 targeting |
+| `targeting_rules` | per-environment rules: `user_targeting`, `group_targeting`, `percentage_rollout`, and `environment_override` all share this table |
+| `user_group_memberships` | which users belong to which group, per environment |
 | `audit_log` | every create / update / delete / toggle |
 
 Indexes on `flags.key` and the `environment_id` foreign keys keep the
 lookups that happen on every evaluation call fast.
 
-## Evaluation engine (Day 4/5)
+## Evaluation engine
 
 `evaluate_flag(db, flag_key, environment_key, user_context)`:
 
 1. Flag must exist, else `FlagNotFoundError`.
 2. If the flag is globally disabled → always resolves to `False`.
 3. Environment must exist, else `EnvironmentNotFoundError`.
-4. If an environment override exists → it wins (off, or a pinned value).
-5. Otherwise → the flag's `default_value`.
+4. **User targeting** — if `user_context.user_id` is on the flag's whitelist for this environment → resolves `True`.
+5. **Group targeting** — if the user belongs to one of the flag's targeted groups → resolves `True`.
+6. **Percentage rollout** — the user is hashed (SHA-256 of `user_id:flag_key`) into a stable 0–100 bucket; if it falls under the configured percentage → resolves `True`. Same user always lands in the same bucket for a given flag, so rollout status doesn't flap as the percentage changes.
+7. **Environment override** — an explicit on/off (or pinned value) set for this environment wins if nothing above matched.
+8. **Default value** — the flag's own `default_value`, if nothing else applied.
 
-The 4 required test cases live in `backend/tests/test_evaluation.py` and all pass:
-default-value fallback, environment override, global-disable precedence, and
-safe handling of an empty/missing user context.
+Results are cached in Redis (keyed by flag + environment + a hash of the
+user context) for 60s, and the cache is invalidated immediately whenever the
+flag, its targeting rules, or its environment override change.
+
+Test coverage in `backend/tests/test_evaluation.py` (9 tests) checks each
+priority level individually, the full priority ordering together, global
+disable precedence, unknown flag/environment errors, and safe handling of an
+empty/missing user context.
 
 ## Running locally
 
@@ -105,8 +114,8 @@ DATABASE_URL="sqlite:///./flagforge.db" uvicorn app.main:app --reload
 ```
 
 Redis is optional for this option — `/health` will just report it as
-`unavailable`, everything else still works (Redis isn't on the evaluation
-hot path yet in Milestone 1; it's wired up for Milestone 2 caching).
+`unavailable`, and evaluation falls back to computing results live instead
+of serving them from cache.
 
 ### Running tests
 
@@ -122,10 +131,14 @@ pytest tests/ -v
 |---|---|---|
 | GET | `/health` | server + DB + Redis status |
 | GET/POST | `/environments` | list / create environments |
+| PUT | `/environments/{key}` | rename an environment |
+| GET/PUT | `/environments/{key}/user-groups` | list / upsert group memberships for an environment |
+| DELETE | `/environments/{key}/user-groups/{group_key}/{user_id}` | remove one user from a group |
 | GET/POST | `/flags` | list / create flags |
 | GET/PUT/DELETE | `/flags/{key}` | read / update / delete a flag |
 | GET | `/flags/{key}/versions` | version history |
 | PUT | `/flags/{key}/environments/{env_key}` | set an environment override |
+| GET/PUT | `/flags/{key}/targeting/{env_key}` | read / set user, group, and percentage targeting rules |
 | POST | `/evaluate` | resolve a flag's value for an environment |
 | GET | `/audit-log` | recent activity |
 
