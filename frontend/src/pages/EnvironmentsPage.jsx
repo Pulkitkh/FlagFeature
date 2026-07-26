@@ -3,7 +3,7 @@ import { Layers, Flag, Activity, Plus, Pencil } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
 import { api } from '../api/client'
-import { PageHeader, Section, Card, Badge, Button, Field, Input, Select, Modal } from '../components/ui'
+import { PageHeader, Section, Card, Badge, Button, Field, Input, Dropdown, Modal } from '../components/ui'
 
 const ENV_ICON_TONE = {
   production: 'bad',
@@ -121,13 +121,25 @@ export default function EnvironmentsPage() {
             <Card>
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
                 <Field label="Flag">
-                  <Select value={selectedFlagKey} onChange={(e) => setSelectedFlagKey(e.target.value)}>
-                    {flags.map((flag) => (
-                      <option key={flag.key} value={flag.key}>
-                        {flag.key}
-                      </option>
-                    ))}
-                  </Select>
+                  <Dropdown
+                    value={selectedFlagKey}
+                    onChange={setSelectedFlagKey}
+                    mono
+                    placeholder="Choose a flag"
+                    options={flags.map((flag) => ({ value: flag.key, label: flag.key, meta: flag }))}
+                    renderOption={(option) => (
+                      <span className="flex items-center gap-2">
+                        <span className={`signal-dot ${option.meta.enabled ? 'signal-dot--live bg-good' : 'bg-muted'}`} />
+                        <span className="font-mono">{option.label}</span>
+                      </span>
+                    )}
+                    renderValue={(option) => (
+                      <span className="flex items-center gap-2">
+                        <span className={`signal-dot ${option.meta.enabled ? 'signal-dot--live bg-good' : 'bg-muted'}`} />
+                        <span className="font-mono">{option.label}</span>
+                      </span>
+                    )}
+                  />
                 </Field>
                 <div className="text-xs text-muted">
                   Shows the resolved value, rule reason, and cache status.

@@ -4,7 +4,7 @@ import { api } from '../api/client'
 import FlagTable from '../components/FlagTable'
 import FlagForm from '../components/FlagForm'
 import Navbar from '../components/Navbar'
-import { PageHeader, Section, StatCard, Button, Input, Select } from '../components/ui'
+import { PageHeader, Section, StatCard, Button, Input, Dropdown } from '../components/ui'
 
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -146,24 +146,26 @@ export default function FlagsPage() {
                   className="pl-9"
                 />
               </div>
-              <Select
+              <Dropdown
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={setStatusFilter}
                 className="sm:w-40"
-              >
-                <option value="all">All statuses</option>
-                <option value="enabled">Enabled</option>
-                <option value="disabled">Disabled</option>
-              </Select>
-              <Select
+                options={[
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'enabled', label: 'Enabled' },
+                  { value: 'disabled', label: 'Disabled' },
+                ]}
+              />
+              <Dropdown
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={setSortBy}
                 className="sm:w-48"
-              >
-                <option value="key-asc">Key (A–Z)</option>
-                <option value="key-desc">Key (Z–A)</option>
-                <option value="updated-desc">Recently updated</option>
-              </Select>
+                options={[
+                  { value: 'key-asc', label: 'Key (A–Z)' },
+                  { value: 'key-desc', label: 'Key (Z–A)' },
+                  { value: 'updated-desc', label: 'Recently updated' },
+                ]}
+              />
             </div>
 
             {!loading && !error && (

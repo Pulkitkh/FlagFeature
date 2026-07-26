@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Users, Plus, Trash2 } from 'lucide-react'
+import { Users, Plus, Trash2, Layers } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
 import { api } from '../api/client'
-import { PageHeader, Card, Badge, Button, Field, Input, Textarea, Select } from '../components/ui'
+import { PageHeader, StatCard, Card, Badge, Button, Field, Input, Textarea, Dropdown } from '../components/ui'
+
+const ENV_DOT_COLOR = { production: 'bg-bad', staging: 'bg-warn', development: 'bg-good' }
 
 export default function GroupsPage() {
   const { environments, selected } = useEnvironment()
@@ -18,6 +20,11 @@ export default function GroupsPage() {
   const selectedEnv = useMemo(
     () => environments.find((env) => env.key === selectedEnvKey) || selected,
     [environments, selectedEnvKey, selected]
+  )
+
+  const totalUsers = useMemo(
+    () => new Set(groups.flatMap((group) => group.user_ids)).size,
+    [groups]
   )
 
   useEffect(() => {
@@ -100,33 +107,54 @@ export default function GroupsPage() {
             description="Create group memberships for the current environment and target them from flag rules."
           />
 
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <StatCard label="Environment" value={selectedEnv?.name || '—'} icon={Layers} tone="accent" />
+            <StatCard label="Groups" value={groups.length} icon={Users} tone="good" />
+            <StatCard label="Unique users" value={totalUsers} icon={Users} tone="neutral" />
+          </div>
+
           <Card className="mb-6">
-            <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="grid gap-4 md:grid-cols-[280px_auto] md:items-end">
               <Field label="Environment">
-                <Select value={selectedEnvKey} onChange={(e) => setSelectedEnvKey(e.target.value)}>
-                  {environments.map((env) => (
-                    <option key={env.key} value={env.key}>
-                      {env.name}
-                    </option>
-                  ))}
-                </Select>
+                <Dropdown
+                  value={selectedEnvKey}
+                  onChange={setSelectedEnvKey}
+                  placeholder="Choose an environment"
+                  options={environments.map((env) => ({ value: env.key, label: env.name, meta: env }))}
+                  renderOption={(option) => (
+                    <span className="flex items-center gap-2">
+                      <span className={`signal-dot signal-dot--live ${ENV_DOT_COLOR[option.value] || 'bg-muted'}`} />
+                      {option.label}
+                    </span>
+                  )}
+                  renderValue={(option) => (
+                    <span className="flex items-center gap-2">
+                      <span className={`signal-dot signal-dot--live ${ENV_DOT_COLOR[option.value] || 'bg-muted'}`} />
+                      {option.label}
+                    </span>
+                  )}
+                />
               </Field>
-              <Badge tone="accent">{selectedEnv?.name || 'No environment selected'}</Badge>
+              <p className="text-xs text-muted">
+                Group memberships are scoped per environment — switch above to manage another one.
+              </p>
             </div>
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-accent">
+                  <Users className="h-4.5 w-4.5" />
+                </span>
                 <div>
                   <h2 className="text-sm font-semibold text-ink">Create group membership</h2>
                   <p className="text-xs text-muted">Add one group and many user IDs at once.</p>
                 </div>
-                <Users className="h-5 w-5 text-accent" />
               </div>
               <form onSubmit={handleSave} className="space-y-4">
                 <Field label="Group key">
-                  <Input value={groupKey} onChange={(e) => setGroupKey(e.target.value)} placeholder="beta_users" />
+                  <Input mono value={groupKey} onChange={(e) => setGroupKey(e.target.value)} placeholder="beta_users" />
                 </Field>
                 <Field label="User IDs" hint="Comma or newline separated">
                   <Textarea
@@ -137,53 +165,61 @@ export default function GroupsPage() {
                   />
                 </Field>
                 {error && <p className="text-sm text-bad">{error}</p>}
-                <Button type="submit" loading={saving} icon={Plus}>
+                <Button type="submit" loading={saving} icon={Plus} className="w-full sm:w-auto">
                   Save group
                 </Button>
               </form>
             </Card>
 
-            <Card>
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-ink">Existing groups</h2>
-                  <p className="text-xs text-muted">Members currently stored for this environment.</p>
+            <Card padded={false}>
+              <div className="flex items-center justify-between gap-2.5 border-b border-border p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-good">
+                    <Layers className="h-4.5 w-4.5" />
+                  </span>
+                  <div>
+                    <h2 className="text-sm font-semibold text-ink">Existing groups</h2>
+                    <p className="text-xs text-muted">Members currently stored for this environment.</p>
+                  </div>
                 </div>
-                <Badge tone="good">{groups.length} groups</Badge>
+                <Badge tone="good" dot live>{groups.length} groups</Badge>
               </div>
-              {loading ? (
-                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
-              ) : groups.length === 0 ? (
-                <p className="text-sm text-muted">No groups yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {groups.map((group) => (
-                    <div key={group.group_key} className="rounded-xl border border-border bg-surfaceMuted p-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="font-mono text-sm font-semibold text-ink">{group.group_key}</p>
-                        <Badge tone="accent">{group.user_ids.length} users</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {group.user_ids.map((userId) => (
-                          <span
-                            key={userId}
-                            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1 text-xs text-ink"
-                          >
-                            {userId}
+              <div className="p-4">
+                {loading ? (
+                  <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
+                ) : groups.length === 0 ? (
+                  <p className="text-sm text-muted">No groups yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {groups.map((group) => (
+                      <div
+                        key={group.group_key}
+                        className="relative overflow-hidden rounded-xl border border-border bg-surfaceMuted p-4"
+                      >
+                        <span className="absolute inset-y-0 left-0 w-1 bg-good" />
+                        <div className="mb-2.5 flex items-center justify-between pl-2">
+                          <p className="font-mono text-sm font-semibold text-ink">{group.group_key}</p>
+                          <Badge tone="accent">{group.user_ids.length} users</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pl-2">
+                          {group.user_ids.map((userId) => (
                             <button
+                              key={userId}
                               type="button"
-                              className="text-bad hover:text-bad/70"
                               onClick={() => handleRemove(group.group_key, userId)}
+                              className="group inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs text-ink transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
+                              title="Remove from group"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              {userId}
+                              <Trash2 className="h-3 w-3 opacity-50 group-hover:opacity-100" />
                             </button>
-                          </span>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
         </div>

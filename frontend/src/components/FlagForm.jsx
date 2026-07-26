@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import Modal from './ui/Modal'
 import Button from './ui/Button'
-import { Field, Input, Select, Textarea, Switch } from './ui/Input'
+import Dropdown from './ui/Dropdown'
+import { Field, Input, Textarea, Switch } from './ui/Input'
 
 const DEFAULT_VALUE_BY_TYPE = {
   boolean: true,
@@ -73,22 +74,28 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
         )}
 
         <Field label="Type">
-          <Select value={type} onChange={(e) => handleTypeChange(e.target.value)}>
-            <option value="boolean">Boolean</option>
-            <option value="string">String</option>
-            <option value="number">Number</option>
-          </Select>
+          <Dropdown
+            value={type}
+            onChange={handleTypeChange}
+            options={[
+              { value: 'boolean', label: 'Boolean' },
+              { value: 'string', label: 'String' },
+              { value: 'number', label: 'Number' },
+            ]}
+          />
         </Field>
 
         <Field label="Default value">
           {type === 'boolean' ? (
-            <Select
+            <Dropdown
               value={String(defaultValue)}
-              onChange={(e) => setDefaultValue(e.target.value === 'true')}
-            >
-              <option value="true">true</option>
-              <option value="false">false</option>
-            </Select>
+              onChange={(v) => setDefaultValue(v === 'true')}
+              mono
+              options={[
+                { value: 'true', label: 'true' },
+                { value: 'false', label: 'false' },
+              ]}
+            />
           ) : (
             <Input
               mono

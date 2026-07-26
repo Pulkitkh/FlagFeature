@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Play } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Play, Check, X, Users, Percent } from 'lucide-react'
 import { api } from '../api/client'
 import FlagForm from '../components/FlagForm'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
-import { Card, Badge, Button, Section, Field, Input, Textarea, Select } from '../components/ui'
+import { Card, Badge, Button, Section, Field, Input, Textarea } from '../components/ui'
 
 export default function FlagDetailPage() {
   const { key } = useParams()
@@ -189,6 +189,20 @@ export default function FlagDetailPage() {
     }
   }
 
+  function toggleGroup(group) {
+    setSelectedGroupKeys((current) =>
+      current.includes(group) ? current.filter((g) => g !== group) : [...current, group]
+    )
+  }
+
+  function removeUserId(userId) {
+    setUserIdInput(parseList(userIdInput).filter((id) => id !== userId).join(', '))
+  }
+
+  function removeExtraGroup(group) {
+    setExtraGroupKeysInput(parseList(extraGroupKeysInput).filter((g) => g !== group).join(', '))
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -320,7 +334,7 @@ export default function FlagDetailPage() {
               {targetingLoading ? (
                 <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-ink">Priority summary</p>
@@ -337,109 +351,147 @@ export default function FlagDetailPage() {
 
                   {targetingError && <p className="text-sm text-bad">{targetingError}</p>}
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="User IDs whitelist" hint="Comma or newline separated user IDs">
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="rounded-xl border border-border bg-surfaceMuted p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-ink">User ID whitelist</p>
+                          <p className="text-xs text-muted">Highest priority — always wins if matched</p>
+                        </div>
+                      </div>
                       <Textarea
-                        rows={4}
+                        rows={3}
                         value={userIdInput}
                         onChange={(e) => setUserIdInput(e.target.value)}
                         placeholder="alice@example.com, bob@example.com"
                       />
-                    </Field>
-
-                    <div className="space-y-3">
-                      <Field
-                        label="Group selector"
-                        hint={availableGroups.length ? 'Choose one or more existing groups' : 'No groups seeded yet'}
-                      >
-                        <Select
-                          multiple
-                          size={Math.max(4, Math.min(availableGroups.length || 4, 8))}
-                          value={selectedGroupKeys}
-                          onChange={(e) =>
-                            setSelectedGroupKeys(
-                              Array.from(e.target.selectedOptions).map((option) => option.value)
-                            )
-                          }
-                          className="min-h-[11rem]"
-                        >
-                          {availableGroups.map((group) => (
-                            <option key={group} value={group}>
-                              {group}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                      <Field label="Extra group keys" hint="Add groups not yet in the selector">
-                        <Input
-                          value={extraGroupKeysInput}
-                          onChange={(e) => setExtraGroupKeysInput(e.target.value)}
-                          placeholder="beta_users, internal_team"
-                        />
-                      </Field>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="border border-border/60 bg-bg/40">
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted">Current whitelist</p>
+                      <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                        Applies to
+                      </p>
                       {parseList(userIdInput).length === 0 ? (
-                        <p className="mt-2 text-sm text-muted">No user IDs added yet.</p>
+                        <p className="text-sm text-muted">No user IDs added yet.</p>
                       ) : (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {parseList(userIdInput).map((userId) => (
-                            <Badge key={userId} tone="accent">
-                              {userId}
-                            </Badge>
+                            <button
+                              key={userId}
+                              type="button"
+                              onClick={() => removeUserId(userId)}
+                              className="group inline-flex items-center gap-1.5 rounded-md border border-accent/25 bg-accentSoft px-2.5 py-1 text-xs font-semibold text-accentDark transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
+                              title="Click to remove"
+                            >
+                              <span className="font-mono">{userId}</span>
+                              <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                            </button>
                           ))}
                         </div>
                       )}
-                    </Card>
+                    </div>
 
-                    <Card className="border border-border/60 bg-bg/40">
-                      <p className="text-xs font-bold uppercase tracking-wide text-muted">Selected groups</p>
-                      {selectedGroupKeys.length === 0 && parseList(extraGroupKeysInput).length === 0 ? (
-                        <p className="mt-2 text-sm text-muted">No groups selected yet.</p>
+                    <div className="rounded-xl border border-border bg-surfaceMuted p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
+                          <Users className="h-3.5 w-3.5" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-ink">Group targeting</p>
+                          <p className="text-xs text-muted">Click a group to target it, click again to remove</p>
+                        </div>
+                      </div>
+
+                      {availableGroups.length === 0 ? (
+                        <p className="text-sm text-muted">
+                          No groups seeded yet — add one in <span className="font-medium text-ink">User groups</span>.
+                        </p>
                       ) : (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {[...selectedGroupKeys, ...parseList(extraGroupKeysInput)].map((group) => (
-                            <Badge key={group} tone="good">
+                        <div className="flex flex-wrap gap-2">
+                          {availableGroups.map((group) => {
+                            const isSelected = selectedGroupKeys.includes(group)
+                            return (
+                              <button
+                                key={group}
+                                type="button"
+                                onClick={() => toggleGroup(group)}
+                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold font-mono transition-colors ${
+                                  isSelected
+                                    ? 'border-accent bg-accent text-white'
+                                    : 'border-border bg-surface text-muted hover:border-accent/40 hover:text-ink'
+                                }`}
+                              >
+                                {isSelected && <Check className="h-3 w-3" />}
+                                {group}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                        Extra group keys
+                      </p>
+                      <Input
+                        value={extraGroupKeysInput}
+                        onChange={(e) => setExtraGroupKeysInput(e.target.value)}
+                        placeholder="beta_users, internal_team"
+                      />
+                      {parseList(extraGroupKeysInput).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {parseList(extraGroupKeysInput).map((group) => (
+                            <button
+                              key={group}
+                              type="button"
+                              onClick={() => removeExtraGroup(group)}
+                              className="group inline-flex items-center gap-1.5 rounded-md border border-good/25 bg-goodSoft px-2.5 py-1 text-xs font-semibold font-mono text-good transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
+                              title="Click to remove"
+                            >
                               {group}
-                            </Badge>
+                              <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                            </button>
                           ))}
                         </div>
                       )}
-                    </Card>
+                    </div>
                   </div>
 
-                  <Field
-                    label="Percentage rollout"
-                    hint={`Enabled for ${Math.round(Number(percentage) || 0)}% of users`}
-                  >
-                    <div className="space-y-3">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={percentage}
-                        onChange={(e) => setPercentage(Number(e.target.value))}
-                        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
-                      />
-                      <div className="flex items-center justify-between text-xs text-muted">
-                        <span>0%</span>
-                        <span className="font-mono text-ink">{Math.round(Number(percentage) || 0)}%</span>
-                        <span>100%</span>
+                  <div className="rounded-xl border border-border bg-surfaceMuted p-4">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
+                          <Percent className="h-3.5 w-3.5" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-ink">Percentage rollout</p>
+                          <p className="text-xs text-muted">Same user always lands in the same bucket</p>
+                        </div>
                       </div>
+                      <span className="rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-sm font-semibold text-accentDark">
+                        {Math.round(Number(percentage) || 0)}%
+                      </span>
                     </div>
-                  </Field>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={percentage}
+                      onChange={(e) => setPercentage(Number(e.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button onClick={handleSaveTargeting} loading={targetingSaving} icon={Sparkles}>
-                      Save targeting rules
-                    </Button>
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
                     <p className="text-xs text-muted">
                       Targeting changes invalidate the cache for this flag immediately.
                     </p>
+                    <Button onClick={handleSaveTargeting} loading={targetingSaving} icon={Sparkles} size="lg">
+                      Save targeting rules
+                    </Button>
                   </div>
                 </div>
               )}
