@@ -100,6 +100,13 @@ class TargetingRulesUpdate(BaseModel):
     user_ids: list[str] = Field(default_factory=list)
     group_keys: list[str] = Field(default_factory=list)
     percentage: Optional[float] = Field(default=None, ge=0, le=100)
+    value: Optional[Any] = Field(
+        default=None,
+        description=(
+            "Value served to users a rule matches. Defaults to `true` for boolean "
+            "flags; string/number flags should set the variant value explicitly."
+        ),
+    )
 
 
 class TargetingRulesOut(BaseModel):
@@ -108,6 +115,7 @@ class TargetingRulesOut(BaseModel):
     user_ids: list[str]
     group_keys: list[str]
     percentage: Optional[float] = None
+    value: Optional[Any] = None
 
 
 class UserGroupMembersUpsert(BaseModel):
@@ -151,3 +159,45 @@ class AuditLogOut(BaseModel):
     entity_id: str
     environment_id: Optional[int]
     details: Optional[dict]
+
+
+# ---------- Overview (dashboard aggregates) ----------
+
+
+class OverviewTotals(BaseModel):
+    flags: int
+    enabled: int
+    disabled: int
+    environments: int
+    groups: int
+    members: int
+
+
+class EnvironmentCoverage(BaseModel):
+    key: str
+    name: str
+    targeted_flags: int
+    overridden_flags: int
+    total_flags: int
+    avg_rollout: Optional[float] = None
+
+
+class ActivityPoint(BaseModel):
+    date: str
+    changes: int
+
+
+class RuleMix(BaseModel):
+    user_targeting: int
+    group_targeting: int
+    percentage_rollout: int
+    environment_override: int
+
+
+class OverviewOut(BaseModel):
+    totals: OverviewTotals
+    by_type: dict[str, int]
+    rule_mix: RuleMix
+    environment_coverage: list[EnvironmentCoverage]
+    activity: list[ActivityPoint]
+    recent_activity: list[AuditLogOut]

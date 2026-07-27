@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -5,6 +8,9 @@ from app.redis_client import (
     invalidate_evaluation_cache,
     invalidate_evaluation_cache_for_environment,
 )
+
+# How many recent audit rows the activity chart scans before bucketing by day.
+_ACTIVITY_SCAN_LIMIT = 5000
 
 
 # ---------- Environments ----------
@@ -318,6 +324,13 @@ def get_targeting_rules(
     group_rule = _get_targeting_rule(db, flag.id, environment.id, "group_targeting")
     rollout_rule = _get_targeting_rule(db, flag.id, environment.id, "percentage_rollout")
 
+    # All three rules share the same served value, so the first one that exists
+    # answers for the set.
+    served_value = next(
+        (rule.value for rule in (user_rule, group_rule, rollout_rule) if rule is not None),
+        None,
+    )
+
     return {
         "flag_key": flag.key,
         "environment_key": environment.key,
@@ -328,6 +341,7 @@ def get_targeting_rules(
         if group_rule
         else [],
         "percentage": rollout_rule.rollout_percentage if rollout_rule else None,
+        "value": served_value,
     }
 
 
@@ -339,6 +353,7 @@ def set_targeting_rules(
 ) -> dict:
     user_ids = _normalize_string_list(payload.user_ids)
     group_keys = _normalize_string_list(payload.group_keys)
+    served_value = flag.on_value(payload.value)
 
     user_rule = _get_targeting_rule(db, flag.id, environment.id, "user_targeting")
     group_rule = _get_targeting_rule(db, flag.id, environment.id, "group_targeting")
@@ -353,7 +368,7 @@ def set_targeting_rules(
                 priority=10,
             )
         user_rule.conditions = {"user_ids": user_ids}
-        user_rule.value = True
+        user_rule.value = served_value
         db.add(user_rule)
     elif user_rule is not None:
         db.delete(user_rule)
@@ -367,7 +382,7 @@ def set_targeting_rules(
                 priority=20,
             )
         group_rule.conditions = {"group_keys": group_keys}
-        group_rule.value = True
+        group_rule.value = served_value
         db.add(group_rule)
     elif group_rule is not None:
         db.delete(group_rule)
@@ -382,7 +397,7 @@ def set_targeting_rules(
             )
         rollout_rule.conditions = {"percentage": payload.percentage}
         rollout_rule.rollout_percentage = payload.percentage
-        rollout_rule.value = True
+        rollout_rule.value = served_value
         db.add(rollout_rule)
     elif rollout_rule is not None:
         db.delete(rollout_rule)
@@ -432,3 +447,124 @@ def list_audit_log(db: Session, limit: int = 100) -> list[models.AuditLog]:
         .limit(limit)
         .all()
     )
+
+
+# ---------- Overview aggregates (dashboard) ----------
+
+
+def build_overview(db: Session, environment_key: str | None = None, days: int = 14) -> dict:
+    """Roll the whole workspace up into the numbers the dashboard charts."""
+    flags = list_flags(db)
+    environments = list_environments(db)
+    selected = (
+        get_environment_by_key(db, environment_key) if environment_key else None
+    ) or (environments[0] if environments else None)
+
+    enabled = sum(1 for flag in flags if flag.enabled)
+
+    by_type: dict[str, int] = {flag_type.value: 0 for flag_type in models.FlagType}
+    for flag in flags:
+        key = flag.type.value if hasattr(flag.type, "value") else str(flag.type)
+        by_type[key] = by_type.get(key, 0) + 1
+
+    rule_mix = {
+        "user_targeting": 0,
+        "group_targeting": 0,
+        "percentage_rollout": 0,
+        "environment_override": 0,
+    }
+    if selected is not None:
+        rows = (
+            db.query(models.TargetingRule.rule_type, func.count(models.TargetingRule.id))
+            .filter(models.TargetingRule.environment_id == selected.id)
+            .group_by(models.TargetingRule.rule_type)
+            .all()
+        )
+        for rule_type, count in rows:
+            if rule_type in rule_mix:
+                rule_mix[rule_type] = count
+
+    coverage = []
+    for environment in environments:
+        rules = (
+            db.query(models.TargetingRule)
+            .filter(models.TargetingRule.environment_id == environment.id)
+            .all()
+        )
+        targeted_flag_ids = {
+            rule.flag_id for rule in rules if rule.rule_type != "environment_override"
+        }
+        overridden_flag_ids = {
+            rule.flag_id for rule in rules if rule.rule_type == "environment_override"
+        }
+        rollouts = [
+            rule.rollout_percentage
+            for rule in rules
+            if rule.rule_type == "percentage_rollout" and rule.rollout_percentage is not None
+        ]
+        coverage.append(
+            {
+                "key": environment.key,
+                "name": environment.name,
+                "targeted_flags": len(targeted_flag_ids),
+                "overridden_flags": len(overridden_flag_ids),
+                "total_flags": len(flags),
+                "avg_rollout": round(sum(rollouts) / len(rollouts), 1) if rollouts else None,
+            }
+        )
+
+    activity = _activity_by_day(db, days=days)
+
+    group_rows = db.query(models.UserGroupMembership.group_key).distinct().all()
+    member_rows = db.query(models.UserGroupMembership.user_id).distinct().all()
+
+    return {
+        "totals": {
+            "flags": len(flags),
+            "enabled": enabled,
+            "disabled": len(flags) - enabled,
+            "environments": len(environments),
+            "groups": len(group_rows),
+            "members": len(member_rows),
+        },
+        "by_type": by_type,
+        "rule_mix": rule_mix,
+        "environment_coverage": coverage,
+        "activity": activity,
+        "recent_activity": list_audit_log(db, limit=6),
+    }
+
+
+def _activity_by_day(db: Session, days: int) -> list[dict]:
+    """Audit-log entry counts per day, oldest first, with empty days filled in.
+
+    Bucketing happens in Python rather than SQL: Postgres stores these
+    timestamps with a timezone and SQLite (used by the test suite) does not, so
+    a date filter that behaves identically on both is not worth the complexity
+    for a log this size.
+    """
+    window_start = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+
+    entries = (
+        db.query(models.AuditLog.timestamp)
+        .order_by(models.AuditLog.timestamp.desc())
+        .limit(_ACTIVITY_SCAN_LIMIT)
+        .all()
+    )
+
+    counts: dict[str, int] = {}
+    for (timestamp,) in entries:
+        if timestamp is None:
+            continue
+        day = timestamp.date()
+        if day < window_start:
+            continue
+        counts[day.isoformat()] = counts.get(day.isoformat(), 0) + 1
+
+    return [
+        {
+            "date": (window_start + timedelta(days=offset)).isoformat(),
+            "changes": counts.get((window_start + timedelta(days=offset)).isoformat(), 0),
+        }
+        for offset in range(days)
+    ]

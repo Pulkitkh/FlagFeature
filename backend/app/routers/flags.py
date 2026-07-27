@@ -2,10 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app import crud, schemas
+from app import crud, models, schemas
 from app.database import get_db
 
 router = APIRouter(prefix="/flags", tags=["flags"])
+
+# What a hand-written `value` is allowed to be, per flag type.
+_VALUE_TYPES = {
+    models.FlagType.boolean: (bool,),
+    models.FlagType.number: (int, float),
+    models.FlagType.string: (str,),
+}
 
 
 def _get_flag_or_404(db: Session, key: str):
@@ -13,6 +20,33 @@ def _get_flag_or_404(db: Session, key: str):
     if flag is None:
         raise HTTPException(status_code=404, detail=f"Flag '{key}' not found")
     return flag
+
+
+def _get_environment_or_404(db: Session, key: str):
+    environment = crud.get_environment_by_key(db, key)
+    if environment is None:
+        raise HTTPException(status_code=404, detail=f"Environment '{key}' not found")
+    return environment
+
+
+def _validate_value(flag: models.Flag, value) -> None:
+    """Reject a served value that doesn't match the flag's declared type.
+
+    Without this a boolean flag could be configured to serve "maybe", which
+    every consuming SDK would then have to defend against.
+    """
+    if value is None:
+        return
+    allowed = _VALUE_TYPES.get(flag.type)
+    # bool is a subclass of int, so a number flag must not accept True.
+    if allowed and isinstance(value, allowed) and not (
+        flag.type == models.FlagType.number and isinstance(value, bool)
+    ):
+        return
+    raise HTTPException(
+        status_code=422,
+        detail=f"Flag '{flag.key}' is a {flag.type.value} flag, so its value must be a {flag.type.value}",
+    )
 
 
 @router.post("", response_model=schemas.FlagOut, status_code=201)
@@ -61,18 +95,15 @@ def set_environment_override(
 ):
     """Turn a flag on/off (or pin a value) for a single environment."""
     flag = _get_flag_or_404(db, key)
-    environment = crud.get_environment_by_key(db, env_key)
-    if environment is None:
-        raise HTTPException(status_code=404, detail=f"Environment '{env_key}' not found")
+    environment = _get_environment_or_404(db, env_key)
+    _validate_value(flag, payload.value)
     return crud.set_environment_override(db, flag, environment, payload)
 
 
 @router.get("/{key}/targeting/{env_key}", response_model=schemas.TargetingRulesOut)
 def get_targeting_rules(key: str, env_key: str, db: Session = Depends(get_db)):
     flag = _get_flag_or_404(db, key)
-    environment = crud.get_environment_by_key(db, env_key)
-    if environment is None:
-        raise HTTPException(status_code=404, detail=f"Environment '{env_key}' not found")
+    environment = _get_environment_or_404(db, env_key)
     return crud.get_targeting_rules(db, flag, environment)
 
 
@@ -84,7 +115,6 @@ def set_targeting_rules(
     db: Session = Depends(get_db),
 ):
     flag = _get_flag_or_404(db, key)
-    environment = crud.get_environment_by_key(db, env_key)
-    if environment is None:
-        raise HTTPException(status_code=404, detail=f"Environment '{env_key}' not found")
+    environment = _get_environment_or_404(db, env_key)
+    _validate_value(flag, payload.value)
     return crud.set_targeting_rules(db, flag, environment, payload)

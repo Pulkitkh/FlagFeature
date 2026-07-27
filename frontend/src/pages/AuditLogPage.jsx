@@ -1,117 +1,178 @@
-import { useEffect, useState } from 'react'
-import { PlusCircle, RefreshCw, Trash2, ToggleLeft, Activity } from 'lucide-react'
-import Navbar from '../components/Navbar'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Activity, PlusCircle, RefreshCw, ToggleLeft, Trash2 } from 'lucide-react'
+import AppLayout from '../components/AppLayout'
 import { api } from '../api/client'
-import { Card, Badge, PageHeader, EmptyState, TableSkeleton } from '../components/ui'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  Dropdown,
+  EmptyState,
+  PageHeader,
+  TableSkeleton,
+} from '../components/ui'
 
 const ACTION_META = {
-  created: { tone: 'good', icon: PlusCircle, label: 'created' },
-  updated: { tone: 'accent', icon: RefreshCw, label: 'updated' },
-  toggled: { tone: 'warn', icon: ToggleLeft, label: 'toggled' },
-  deleted: { tone: 'bad', icon: Trash2, label: 'deleted' },
+  created: { tone: 'good', icon: PlusCircle, label: 'created', iconClass: 'text-good' },
+  updated: { tone: 'accent', icon: RefreshCw, label: 'updated', iconClass: 'text-accent' },
+  toggled: { tone: 'warn', icon: ToggleLeft, label: 'toggled', iconClass: 'text-warn' },
+  deleted: { tone: 'bad', icon: Trash2, label: 'deleted', iconClass: 'text-bad' },
 }
 
-const ICON_TONE_CLASSES = {
-  good: 'bg-goodSoft text-good border-good/20',
-  bad: 'bg-badSoft text-bad border-bad/20',
-  warn: 'bg-warnSoft text-warn border-warn/20',
-  accent: 'bg-accentSoft text-accentDark border-accent/20',
-  neutral: 'bg-surfaceMuted text-muted border-border',
-}
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'All actions' },
+  { value: 'created', label: 'Created' },
+  { value: 'updated', label: 'Updated' },
+  { value: 'toggled', label: 'Toggled' },
+  { value: 'deleted', label: 'Deleted' },
+]
 
 function relativeTime(dateStr) {
   const date = new Date(dateStr)
-  const diffMs = Date.now() - date.getTime()
-  const diffSec = Math.round(diffMs / 1000)
-  const diffMin = Math.round(diffSec / 60)
-  const diffHr = Math.round(diffMin / 60)
-  const diffDay = Math.round(diffHr / 24)
+  const diffSec = Math.round((Date.now() - date.getTime()) / 1000)
 
   if (diffSec < 60) return 'just now'
-  if (diffMin < 60) return `${diffMin}m ago`
-  if (diffHr < 24) return `${diffHr}h ago`
-  if (diffDay < 30) return `${diffDay}d ago`
+  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`
+  if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h ago`
+  if (diffSec < 2592000) return `${Math.round(diffSec / 86400)}d ago`
   return date.toLocaleDateString()
+}
+
+function summarize(entry) {
+  const details = entry.details || {}
+  const parts = []
+
+  if ('enabled' in details) parts.push(`enabled → ${JSON.stringify(details.enabled)}`)
+  if ('default_value' in details) parts.push(`default → ${JSON.stringify(details.default_value)}`)
+  if (Array.isArray(details.user_ids) && details.user_ids.length)
+    parts.push(`${details.user_ids.length} targeted user(s)`)
+  if (Array.isArray(details.group_keys) && details.group_keys.length)
+    parts.push(`groups: ${details.group_keys.join(', ')}`)
+  if (details.percentage !== undefined && details.percentage !== null)
+    parts.push(`rollout ${details.percentage}%`)
+  if (details.value !== undefined && details.value !== null)
+    parts.push(`value → ${JSON.stringify(details.value)}`)
+
+  return parts.join(' · ')
 }
 
 export default function AuditLogPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [filter, setFilter] = useState('all')
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true)
     api
       .getAuditLog()
-      .then(setEntries)
+      .then((data) => {
+        setEntries(data)
+        setError(null)
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const visible = useMemo(
+    () => (filter === 'all' ? entries : entries.filter((entry) => entry.action === filter)),
+    [entries, filter]
+  )
+
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="Audit Log" breadcrumb="FlagForge" />
-
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-content">
-          <PageHeader
-            title="Audit log"
-            description="Every create, update, delete, and environment toggle, in order."
-          />
-
-          {loading ? (
-            <TableSkeleton rows={6} cols={1} />
-          ) : error ? (
-            <EmptyState icon={Activity} title="Couldn't load activity" description={error} />
-          ) : entries.length === 0 ? (
-            <EmptyState
-              icon={Activity}
-              title="Nothing logged yet"
-              description="Every flag create, update, and toggle will show up here."
+    <AppLayout title="Audit log" breadcrumb="FlagForge">
+      <PageHeader
+        eyebrow="History"
+        title="Audit log"
+        description="Every create, update, delete and environment toggle, newest first — so you can always answer “who changed what, and when?”."
+        action={
+          <>
+            <Dropdown
+              value={filter}
+              onChange={setFilter}
+              options={FILTER_OPTIONS}
+              className="w-40"
             />
-          ) : (
-            <Card padded={false} className="overflow-hidden">
-              <div className="border-b border-border bg-surfaceMuted px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                Release activity ledger
-              </div>
-              <ul className="relative px-5">
-                <span className="absolute bottom-6 left-9 top-6 w-px bg-border" aria-hidden="true" />
-                {entries.map((entry) => {
-                  const meta = ACTION_META[entry.action] || {
-                    tone: 'neutral',
-                    icon: Activity,
-                    label: entry.action,
-                  }
-                  const Icon = meta.icon
-                  return (
-                    <li key={entry.id} className="relative flex items-start gap-3 py-4">
-                      <div
-                        className={`relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${ICON_TONE_CLASSES[meta.tone]}`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1 border-b border-border/70 pb-4 last:border-0 last:pb-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone={meta.tone}>{meta.label}</Badge>
-                          <span className="font-mono text-sm text-ink">
-                            {entry.entity_type}#{entry.entity_id}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-muted">by {entry.actor}</p>
-                      </div>
-                      <span
-                        className="shrink-0 font-mono text-xs text-muted"
-                        title={new Date(entry.timestamp).toLocaleString()}
-                      >
-                        {relativeTime(entry.timestamp)}
+            <Button variant="secondary" icon={RefreshCw} onClick={load} loading={loading}>
+              Refresh
+            </Button>
+          </>
+        }
+      />
+
+      {loading ? (
+        <TableSkeleton rows={6} cols={3} />
+      ) : error ? (
+        <EmptyState icon={Activity} tone="bad" title="Couldn't load activity" description={error} />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={Activity}
+          title={filter === 'all' ? 'Nothing logged yet' : `No “${filter}” events`}
+          description={
+            filter === 'all'
+              ? 'Every flag create, update and toggle will show up here.'
+              : 'Try a different action filter.'
+          }
+        />
+      ) : (
+        <Card padded={false}>
+          <CardHeader
+            icon={Activity}
+            title="Release activity ledger"
+            action={<Badge tone="neutral">{visible.length} entries</Badge>}
+          />
+          <ul className="divide-y divide-border">
+            {visible.map((entry) => {
+              const meta = ACTION_META[entry.action] || {
+                tone: 'neutral',
+                icon: Activity,
+                label: entry.action,
+                iconClass: 'text-muted',
+              }
+              const Icon = meta.icon
+              const summary = summarize(entry)
+
+              return (
+                <li key={entry.id} className="flex items-start gap-3.5 px-5 py-4">
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted ${meta.iconClass}`}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={meta.tone} size="sm">
+                        {meta.label}
+                      </Badge>
+                      <span className="truncate font-mono text-sm text-ink">
+                        {entry.entity_type}
+                        <span className="text-muted">#{entry.entity_id}</span>
                       </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
+                    </div>
+                    {summary && (
+                      <p className="mt-1 break-words font-mono text-xs text-muted">{summary}</p>
+                    )}
+                    <p className="mt-1 text-xs text-muted">by {entry.actor}</p>
+                  </div>
+
+                  <span
+                    className="shrink-0 whitespace-nowrap font-mono text-xs text-muted"
+                    title={new Date(entry.timestamp).toLocaleString()}
+                  >
+                    {relativeTime(entry.timestamp)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </Card>
+      )}
+    </AppLayout>
   )
 }

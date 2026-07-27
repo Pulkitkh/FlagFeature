@@ -65,6 +65,29 @@ class Flag(Base):
         "TargetingRule", back_populates="flag", cascade="all, delete-orphan"
     )
 
+    def on_value(self, configured_value=None):
+        """The value this flag serves when a rule matches.
+
+        Boolean flags serve `True`. String/number flags serve the value stored
+        on the rule, so "enabled for beta_users" can mean "beta_users see
+        variant-b" rather than a meaningless `true`.
+        """
+        if configured_value is not None:
+            return configured_value
+        if self.type == FlagType.boolean:
+            return True
+        return self.default_value
+
+    def off_value(self):
+        """The value this flag serves when it is switched off.
+
+        Boolean flags are hard `False`; typed flags fall back to their default,
+        since `False` is not a valid string or number value.
+        """
+        if self.type == FlagType.boolean:
+            return False
+        return self.default_value
+
 
 class FlagVersion(Base):
     __tablename__ = "flag_versions"
@@ -83,10 +106,11 @@ class FlagVersion(Base):
 class TargetingRule(Base):
     """Per-environment rule for a flag.
 
-    Milestone 1 only uses rule_type="environment_override" to flip a flag
-    on/off (or pin a value) for a specific environment. rule_type is kept
-    generic so Milestone 2 can add percentage rollout / user-group rules
-    without a schema change.
+    All four rule kinds share this table and are distinguished by rule_type:
+    "user_targeting", "group_targeting", "percentage_rollout" and
+    "environment_override". `value` holds the value served when the rule
+    matches, so non-boolean flags can serve a real string/number to targeted
+    users instead of a bare `true`.
     """
 
     __tablename__ = "targeting_rules"
@@ -134,8 +158,10 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), default=utcnow, index=True)
     actor = Column(String(100), nullable=False, default="system")
-    action = Column(String(50), nullable=False)  # created, updated, deleted, toggled
-    entity_type = Column(String(50), nullable=False)  # flag, environment, targeting_rule
+    action = Column(String(50), nullable=False, index=True)  # created, updated, deleted, toggled
+    entity_type = Column(String(50), nullable=False, index=True)  # flag, environment, targeting_rule
     entity_id = Column(String(50), nullable=False)
-    environment_id = Column(Integer, ForeignKey("environments.id"), nullable=True)
+    environment_id = Column(
+        Integer, ForeignKey("environments.id"), index=True, nullable=True
+    )
     details = Column(JSON, nullable=True, default=dict)

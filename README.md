@@ -9,8 +9,10 @@ API.
 ## Stack
 
 - **Backend:** FastAPI, SQLAlchemy, PostgreSQL, Redis
-- **Frontend:** React (Vite), React Router, Tailwind CSS
-- **Tests:** Pytest (evaluation engine, SQLite in-memory — no external deps needed)
+- **Frontend:** React (Vite), React Router, Tailwind CSS, Recharts
+- **Tests:** Pytest — evaluation-engine unit tests plus end-to-end API tests
+  through FastAPI's `TestClient`, on in-memory SQLite and a fake Redis, so the
+  suite runs with no external services
 
 ## Project structure
 
@@ -32,14 +34,19 @@ flagforge/
 │   │       ├── flags.py
 │   │       └── evaluation.py
 │   ├── tests/
-│   │   └── test_evaluation.py # the 4 required evaluation-engine cases
+│   │   ├── test_evaluation.py # evaluation-engine unit tests
+│   │   └── test_api.py        # end-to-end HTTP tests: CRUD, errors,
+│   │                          # targeting, rollout, caching, overview
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/              # Flags, FlagDetail, Environments, AuditLog
-│   │   ├── components/         # Sidebar, Navbar, EnvironmentSwitcher, FlagTable, FlagForm
-│   │   ├── context/             # selected-environment state
+│   │   ├── pages/              # Dashboard, Flags, FlagDetail, Environments,
+│   │   │                       # Groups, AuditLog
+│   │   ├── components/
+│   │   │   ├── ui/             # design-system primitives (Button, Card, Modal…)
+│   │   │   └── charts/         # Recharts wrappers + the shared palette hook
+│   │   ├── context/            # environment, theme and toast providers
 │   │   └── api/client.js
 │   └── package.json
 └── docker-compose.yml           # Postgres + Redis + backend for local dev
@@ -64,11 +71,11 @@ lookups that happen on every evaluation call fast.
 `evaluate_flag(db, flag_key, environment_key, user_context)`:
 
 1. Flag must exist, else `FlagNotFoundError`.
-2. If the flag is globally disabled → always resolves to `False`.
-3. Environment must exist, else `EnvironmentNotFoundError`.
-4. **User targeting** — if `user_context.user_id` is on the flag's whitelist for this environment → resolves `True`.
-5. **Group targeting** — if the user belongs to one of the flag's targeted groups → resolves `True`.
-6. **Percentage rollout** — the user is hashed (SHA-256 of `user_id:flag_key`) into a stable 0–100 bucket; if it falls under the configured percentage → resolves `True`. Same user always lands in the same bucket for a given flag, so rollout status doesn't flap as the percentage changes.
+2. If the flag is globally disabled → resolves to `False` (or, for a string/number flag, to its default, since `False` isn't a valid value of that type).
+3. Environment must exist, else `EnvironmentNotFoundError` — checked before the kill switch, so a bad environment key is never masked by a disabled flag.
+4. **User targeting** — if `user_context.user_id` is on the flag's whitelist for this environment → resolves to the rule's value.
+5. **Group targeting** — if the user belongs to one of the flag's targeted groups → resolves to the rule's value. Membership comes from the `user_group_memberships` table, plus any groups passed inline on the request (which is what the dashboard's test panel uses).
+6. **Percentage rollout** — the user is hashed (SHA-256 of `user_id:flag_key`) into a stable 0–100 bucket; if it falls under the configured percentage → resolves to the rule's value. Same user always lands in the same bucket for a given flag, so rollout status doesn't flap as the percentage changes.
 7. **Environment override** — an explicit on/off (or pinned value) set for this environment wins if nothing above matched.
 8. **Default value** — the flag's own `default_value`, if nothing else applied.
 
@@ -76,10 +83,53 @@ Results are cached in Redis (keyed by flag + environment + a hash of the
 user context) for 60s, and the cache is invalidated immediately whenever the
 flag, its targeting rules, or its environment override change.
 
-Test coverage in `backend/tests/test_evaluation.py` (9 tests) checks each
-priority level individually, the full priority ordering together, global
-disable precedence, unknown flag/environment errors, and safe handling of an
-empty/missing user context.
+A matched rule serves `True` for boolean flags; string and number flags serve
+the value configured on the rule, so "enabled for `beta_users`" can mean
+"`beta_users` see `variant-b`". The API rejects a value that doesn't match the
+flag's declared type.
+
+Test coverage (33 tests, `pytest -q`):
+
+- `test_evaluation.py` — each priority level individually, the full ordering
+  together, kill-switch precedence over every rule, typed targeting values,
+  inline context groups, empty/missing user context, and unknown
+  flag/environment errors.
+- `test_api.py` — flag and environment CRUD over HTTP, the error contract
+  (404 / 409 / 422), rule priority end to end, rollout stability as a
+  percentage widens, group-membership management, cache hits, cache
+  invalidation after every kind of change, per-user cache isolation, the audit
+  log, and the overview aggregates.
+
+## Dashboard
+
+The console opens on a dashboard that reads from `GET /overview`:
+
+- **Stat tiles** — flag count and enabled/disabled split, environments, active
+  rules in the selected environment, and changes today.
+- **Configuration activity** — an area chart of every flag, rule and override
+  change over the last 14 days.
+- **Flag health** — a meter for the enabled share, a per-type breakdown, and a
+  bar chart of the rule mix in the selected environment.
+- **Environment coverage** — how many flags carry a targeting rule or override
+  in each environment, with average rollout percentages.
+
+Chart colours are a validated two-slot palette (blue, orange) that clears the
+colourblind-separation and contrast checks against both the light and dark
+chart surfaces. Every chart is single-series with direct labels, so identity
+never rests on colour alone.
+
+## Theming and accessibility
+
+- Light and dark themes, each a deliberately chosen set of tokens rather than
+  an inverted copy. The choice is stored and applied before first paint, so a
+  reload never flashes the wrong theme.
+- Full keyboard support: the environment switcher and every dropdown handle
+  arrows, Home/End, Enter and Escape; dialogs trap Escape, lock body scroll and
+  move focus inside; table rows are reachable and activatable by keyboard.
+- Visible focus rings throughout, `aria-*` on switches, meters and listboxes,
+  and a `prefers-reduced-motion` block that disables all animation.
+- Responsive from 320px up: the sidebar becomes a drawer below `lg`, tables
+  scroll horizontally rather than forcing the page to.
 
 ## Running locally
 
@@ -122,8 +172,11 @@ of serving them from cache.
 ```bash
 cd backend
 pip install -r requirements.txt
-pytest tests/ -v
+pytest -q
 ```
+
+No Postgres or Redis needed — the suite uses in-memory SQLite and an in-memory
+Redis stand-in.
 
 ## API quick reference
 
@@ -141,6 +194,7 @@ pytest tests/ -v
 | GET/PUT | `/flags/{key}/targeting/{env_key}` | read / set user, group, and percentage targeting rules |
 | POST | `/evaluate` | resolve a flag's value for an environment |
 | GET | `/audit-log` | recent activity |
+| GET | `/overview` | dashboard aggregates: totals, rule mix, per-environment coverage, 14-day activity |
 
 Interactive docs are auto-generated at `/docs` (Swagger) once the backend is running.
 

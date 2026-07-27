@@ -204,6 +204,114 @@ def test_evaluation_works_with_empty_or_missing_user_context(db_session):
     assert result_none["reason"] == "default_value"
 
 
+def test_disabled_flag_always_returns_false(db_session):
+    """Case 2: the global kill switch outranks every rule below it."""
+    flag, env = _make_flag_and_env(db_session, default_value=True, flag_enabled=False)
+
+    # Stack every rule that could otherwise turn this flag on.
+    crud.set_environment_override(
+        db_session, flag, env, schemas.EnvironmentOverrideSet(enabled=True)
+    )
+    crud.set_targeting_rules(
+        db_session,
+        flag,
+        env,
+        schemas.TargetingRulesUpdate(
+            user_ids=["alice@example.com"], group_keys=["beta_users"], percentage=100
+        ),
+    )
+    db_session.add(
+        models.UserGroupMembership(
+            user_id="alice@example.com", group_key="beta_users", environment_id=env.id
+        )
+    )
+    db_session.commit()
+
+    for context in ({}, {"user_id": "alice@example.com"}, {"user_id": "nobody@example.com"}):
+        result = evaluate_flag(db_session, flag.key, env.key, user_context=context)
+        assert result["value"] is False
+        assert result["reason"] == "flag_disabled"
+
+
+def test_disabled_typed_flag_falls_back_to_its_default(db_session):
+    """`False` isn't a valid string value, so a disabled string flag serves its default."""
+    flag = crud.create_flag(
+        db_session,
+        schemas.FlagCreate(
+            key="checkout-copy",
+            type=models.FlagType.string,
+            default_value="control",
+            enabled=False,
+        ),
+    )
+    env = crud.create_environment(
+        db_session, schemas.EnvironmentCreate(key="staging", name="Staging")
+    )
+
+    result = evaluate_flag(db_session, flag.key, env.key, user_context={})
+
+    assert result["value"] == "control"
+    assert result["reason"] == "flag_disabled"
+
+
+def test_targeting_serves_the_configured_value_for_typed_flags(db_session):
+    """A targeted user on a string flag gets the variant, not a bare `true`."""
+    flag = crud.create_flag(
+        db_session,
+        schemas.FlagCreate(
+            key="checkout-copy", type=models.FlagType.string, default_value="control"
+        ),
+    )
+    env = crud.create_environment(
+        db_session, schemas.EnvironmentCreate(key="staging", name="Staging")
+    )
+
+    crud.set_targeting_rules(
+        db_session,
+        flag,
+        env,
+        schemas.TargetingRulesUpdate(user_ids=["alice@example.com"], value="variant-b"),
+    )
+
+    targeted = evaluate_flag(
+        db_session, flag.key, env.key, user_context={"user_id": "alice@example.com"}
+    )
+    assert targeted["value"] == "variant-b"
+    assert targeted["reason"] == "user_targeting"
+
+    untargeted = evaluate_flag(
+        db_session, flag.key, env.key, user_context={"user_id": "bob@example.com"}
+    )
+    assert untargeted["value"] == "control"
+    assert untargeted["reason"] == "default_value"
+
+
+def test_groups_can_be_supplied_inline_in_the_user_context(db_session):
+    """The dashboard's test panel passes groups directly, without seeding memberships."""
+    flag, env = _make_flag_and_env(db_session, default_value=False)
+
+    crud.set_targeting_rules(
+        db_session, flag, env, schemas.TargetingRulesUpdate(group_keys=["beta_users"])
+    )
+
+    matched = evaluate_flag(
+        db_session,
+        flag.key,
+        env.key,
+        user_context={"user_id": "nobody@example.com", "groups": ["beta_users"]},
+    )
+    assert matched["value"] is True
+    assert matched["reason"] == "group_targeting"
+
+    unmatched = evaluate_flag(
+        db_session,
+        flag.key,
+        env.key,
+        user_context={"user_id": "nobody@example.com", "groups": ["premium_plan"]},
+    )
+    assert unmatched["reason"] == "default_value"
+
+
 def test_unknown_flag_raises_not_found(db_session):
     with pytest.raises(FlagNotFoundError):
         evaluate_flag(db_session, "does-not-exist", "staging", user_context={})
@@ -211,5 +319,12 @@ def test_unknown_flag_raises_not_found(db_session):
 
 def test_unknown_environment_raises_not_found(db_session):
     flag, _ = _make_flag_and_env(db_session)
+    with pytest.raises(EnvironmentNotFoundError):
+        evaluate_flag(db_session, flag.key, "does-not-exist", user_context={})
+
+
+def test_unknown_environment_is_reported_even_for_a_disabled_flag(db_session):
+    """The kill switch must not mask a bad environment key."""
+    flag, _ = _make_flag_and_env(db_session, flag_enabled=False)
     with pytest.raises(EnvironmentNotFoundError):
         evaluate_flag(db_session, flag.key, "does-not-exist", user_context={})

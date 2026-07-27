@@ -1,39 +1,98 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Power, PowerOff, History, Sparkles, Play, Check, X, Users, Percent } from 'lucide-react'
-import { api } from '../api/client'
+import {
+  ArrowLeft,
+  Check,
+  History,
+  Pencil,
+  Percent,
+  Play,
+  Power,
+  PowerOff,
+  Save,
+  Trash2,
+  Users,
+  UserSquare2,
+} from 'lucide-react'
+import AppLayout from '../components/AppLayout'
 import FlagForm from '../components/FlagForm'
-import Navbar from '../components/Navbar'
+import { api } from '../api/client'
 import { useEnvironment } from '../context/EnvironmentContext'
-import { Card, Badge, Button, Section, Field, Input, Textarea } from '../components/ui'
+import { useToast } from '../context/ToastContext'
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  Chip,
+  ConfirmDialog,
+  EmptyState,
+  Field,
+  Input,
+  PageHeader,
+  Textarea,
+} from '../components/ui'
+
+const TEST_DEBOUNCE_MS = 300
+
+const REASON_LABEL = {
+  user_targeting: 'User targeting',
+  group_targeting: 'Group targeting',
+  percentage_rollout: 'Percentage rollout',
+  environment_override_enabled: 'Environment override (on)',
+  environment_override_disabled: 'Environment override (off)',
+  default_value: 'Default value',
+  flag_disabled: 'Kill switch — flag disabled globally',
+}
+
+function parseList(value) {
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function isNotFound(err) {
+  return err?.status === 404 || /not found/i.test(err?.message || '')
+}
 
 export default function FlagDetailPage() {
   const { key } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const { selected: selectedEnv } = useEnvironment()
 
   const [flag, setFlag] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [versions, setVersions] = useState([])
+
   const [showEdit, setShowEdit] = useState(false)
   const [editError, setEditError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   const [evalResult, setEvalResult] = useState(null)
   const [evalLoading, setEvalLoading] = useState(false)
-  const [versions, setVersions] = useState([])
+  const [overrideBusy, setOverrideBusy] = useState(null)
+
   const [targetingLoading, setTargetingLoading] = useState(false)
   const [targetingSaving, setTargetingSaving] = useState(false)
   const [targetingError, setTargetingError] = useState(null)
-  const [targetingRules, setTargetingRules] = useState({ user_ids: [], group_keys: [], percentage: null })
   const [availableGroups, setAvailableGroups] = useState([])
   const [userIdInput, setUserIdInput] = useState('')
   const [selectedGroupKeys, setSelectedGroupKeys] = useState([])
   const [extraGroupKeysInput, setExtraGroupKeysInput] = useState('')
   const [percentage, setPercentage] = useState(0)
+  const [targetedValue, setTargetedValue] = useState('')
+
   const [testUserId, setTestUserId] = useState('')
+  const [testGroups, setTestGroups] = useState('')
   const [testResult, setTestResult] = useState(null)
   const [testLoading, setTestLoading] = useState(false)
   const [testError, setTestError] = useState(null)
+
+  const isBoolean = flag?.type === 'boolean'
 
   const load = useCallback(() => {
     setLoading(true)
@@ -46,68 +105,105 @@ export default function FlagDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
 
-    api
-      .getFlagVersions(key)
-      .then(setVersions)
-      .catch(() => setVersions([]))
+    api.getFlagVersions(key).then(setVersions).catch(() => setVersions([]))
   }, [key])
 
   useEffect(() => {
     load()
   }, [load])
 
-  useEffect(() => {
+  const refreshEvaluation = useCallback(async () => {
     if (!flag || !selectedEnv) return
     setEvalLoading(true)
-    api
-      .evaluateFlag({ flag_key: flag.key, environment_key: selectedEnv.key })
-      .then(setEvalResult)
-      .catch(() => setEvalResult(null))
-      .finally(() => setEvalLoading(false))
+    try {
+      setEvalResult(await api.evaluateFlag({ flag_key: flag.key, environment_key: selectedEnv.key }))
+    } catch {
+      setEvalResult(null)
+    } finally {
+      setEvalLoading(false)
+    }
   }, [flag, selectedEnv])
 
   useEffect(() => {
+    refreshEvaluation()
+  }, [refreshEvaluation])
+
+  // Load the targeting rules for the environment currently selected in the navbar.
+  useEffect(() => {
     if (!flag || !selectedEnv) return
+    let cancelled = false
+
     setTargetingLoading(true)
     Promise.all([
       api.getTargetingRules(flag.key, selectedEnv.key),
       api.listEnvironmentGroups(selectedEnv.key),
     ])
       .then(([rules, groups]) => {
-        const mergedGroups = Array.from(new Set([...(groups || []), ...(rules.group_keys || [])])).sort()
-        setAvailableGroups(mergedGroups)
-        setTargetingRules(rules)
+        if (cancelled) return
+        const known = Array.from(new Set([...(groups || []), ...(rules.group_keys || [])])).sort()
+        setAvailableGroups(known)
         setUserIdInput((rules.user_ids || []).join(', '))
-        setSelectedGroupKeys((rules.group_keys || []).filter((group) => mergedGroups.includes(group)))
-        setExtraGroupKeysInput((rules.group_keys || []).filter((group) => !mergedGroups.includes(group)).join(', '))
+        setSelectedGroupKeys(rules.group_keys || [])
+        setExtraGroupKeysInput('')
         setPercentage(rules.percentage ?? 0)
+        setTargetedValue(rules.value === null || rules.value === undefined ? '' : String(rules.value))
         setTargetingError(null)
       })
       .catch((err) => {
-        if (isNotFoundError(err)) {
+        if (cancelled) return
+        if (isNotFound(err)) {
           setAvailableGroups([])
-          setTargetingRules({ user_ids: [], group_keys: [], percentage: null })
           setUserIdInput('')
           setSelectedGroupKeys([])
           setExtraGroupKeysInput('')
           setPercentage(0)
+          setTargetedValue('')
           setTargetingError(null)
           return
         }
         setTargetingError(err.message)
       })
-      .finally(() => setTargetingLoading(false))
+      .finally(() => !cancelled && setTargetingLoading(false))
+
+    return () => {
+      cancelled = true
+    }
   }, [flag, selectedEnv])
 
-  useEffect(() => {
+  const runTestEvaluation = useCallback(async () => {
     if (!flag || !selectedEnv) return
 
-    const timer = setTimeout(() => {
-      runTestEvaluation()
-    }, 250)
+    const userContext = {}
+    if (testUserId.trim()) userContext.user_id = testUserId.trim()
+    const groups = parseList(testGroups)
+    if (groups.length) userContext.groups = groups
 
+    setTestLoading(true)
+    setTestError(null)
+    try {
+      setTestResult(
+        await api.evaluateFlag({
+          flag_key: flag.key,
+          environment_key: selectedEnv.key,
+          user_context: userContext,
+        })
+      )
+    } catch (err) {
+      setTestResult(null)
+      setTestError(err.message)
+    } finally {
+      setTestLoading(false)
+    }
+  }, [flag, selectedEnv, testUserId, testGroups])
+
+  // Debounced so typing a user ID doesn't fire a request per keystroke.
+  const testRef = useRef(runTestEvaluation)
+  testRef.current = runTestEvaluation
+  useEffect(() => {
+    if (!flag || !selectedEnv) return
+    const timer = setTimeout(() => testRef.current(), TEST_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [flag, selectedEnv, testUserId])
+  }, [flag, selectedEnv, testUserId, testGroups])
 
   async function handleUpdate(payload) {
     setSubmitting(true)
@@ -115,6 +211,7 @@ export default function FlagDetailPage() {
     try {
       await api.updateFlag(key, payload)
       setShowEdit(false)
+      toast.success('Flag updated')
       load()
     } catch (err) {
       setEditError(err.message)
@@ -124,16 +221,27 @@ export default function FlagDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete flag "${key}"? This can't be undone.`)) return
     await api.deleteFlag(key)
+    toast.success('Flag deleted', { description: `${key} is gone.` })
     navigate('/flags')
   }
 
   async function handleToggleForEnvironment(nextEnabled) {
     if (!selectedEnv) return
-    await api.setEnvironmentOverride(key, selectedEnv.key, { enabled: nextEnabled })
-    const result = await api.evaluateFlag({ flag_key: key, environment_key: selectedEnv.key })
-    setEvalResult(result)
+    setOverrideBusy(nextEnabled ? 'on' : 'off')
+    try {
+      await api.setEnvironmentOverride(key, selectedEnv.key, { enabled: nextEnabled })
+      await refreshEvaluation()
+      await runTestEvaluation()
+      toast.success(
+        `${flag.key} is now forced ${nextEnabled ? 'on' : 'off'} in ${selectedEnv.name}`
+      )
+    } catch (err) {
+      // This used to reject silently and leave the card showing a stale value.
+      toast.error("Couldn't set the override", { description: err.message })
+    } finally {
+      setOverrideBusy(null)
+    }
   }
 
   async function handleSaveTargeting() {
@@ -141,27 +249,26 @@ export default function FlagDetailPage() {
     setTargetingSaving(true)
     setTargetingError(null)
     try {
-      const mergedGroupKeys = Array.from(
-        new Set([...selectedGroupKeys, ...parseList(extraGroupKeysInput)])
-      )
       const payload = {
         user_ids: parseList(userIdInput),
-        group_keys: mergedGroupKeys,
-        percentage: Number.isFinite(Number(percentage)) ? Number(percentage) : null,
+        group_keys: Array.from(new Set([...selectedGroupKeys, ...parseList(extraGroupKeysInput)])),
+        percentage: Number(percentage) > 0 ? Number(percentage) : null,
       }
+      if (!isBoolean && targetedValue !== '') {
+        payload.value = flag.type === 'number' ? Number(targetedValue) : targetedValue
+      }
+
       const rules = await api.setTargetingRules(flag.key, selectedEnv.key, payload)
-      setTargetingRules(rules)
       setUserIdInput((rules.user_ids || []).join(', '))
       setSelectedGroupKeys(rules.group_keys || [])
       setExtraGroupKeysInput('')
       setPercentage(rules.percentage ?? 0)
-      const refreshed = await api.evaluateFlag({
-        flag_key: flag.key,
-        environment_key: selectedEnv.key,
-        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
-      })
-      setEvalResult(refreshed)
-      setTestResult(refreshed)
+      setAvailableGroups((current) =>
+        Array.from(new Set([...current, ...(rules.group_keys || [])])).sort()
+      )
+      await refreshEvaluation()
+      await runTestEvaluation()
+      toast.success('Targeting rules saved', { description: 'The cache was cleared immediately.' })
     } catch (err) {
       setTargetingError(err.message)
     } finally {
@@ -169,410 +276,499 @@ export default function FlagDetailPage() {
     }
   }
 
-  async function runTestEvaluation() {
-    if (!flag || !selectedEnv) return
-
-    setTestLoading(true)
-    setTestError(null)
-    try {
-      const result = await api.evaluateFlag({
-        flag_key: flag.key,
-        environment_key: selectedEnv.key,
-        user_context: testUserId.trim() ? { user_id: testUserId.trim() } : {},
-      })
-      setTestResult(result)
-    } catch (err) {
-      setTestResult(null)
-      setTestError(err.message)
-    } finally {
-      setTestLoading(false)
-    }
-  }
-
   function toggleGroup(group) {
     setSelectedGroupKeys((current) =>
-      current.includes(group) ? current.filter((g) => g !== group) : [...current, group]
+      current.includes(group) ? current.filter((item) => item !== group) : [...current, group]
     )
   }
 
-  function removeUserId(userId) {
-    setUserIdInput(parseList(userIdInput).filter((id) => id !== userId).join(', '))
-  }
-
-  function removeExtraGroup(group) {
-    setExtraGroupKeysInput(parseList(extraGroupKeysInput).filter((g) => g !== group).join(', '))
-  }
+  const targetedUserIds = useMemo(() => parseList(userIdInput), [userIdInput])
+  const extraGroups = useMemo(() => parseList(extraGroupKeysInput), [extraGroupKeysInput])
+  const hasTargeting =
+    targetedUserIds.length > 0 || selectedGroupKeys.length > 0 || Number(percentage) > 0
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
-        <div className="p-6 text-sm text-muted">Loading…</div>
-      </div>
+      <AppLayout title="Flag details" breadcrumb="FlagForge / Flags">
+        <div className="space-y-5">
+          <div className="h-10 w-64 animate-pulse rounded-lg bg-surfaceMuted" />
+          <div className="grid gap-5 lg:grid-cols-3">
+            <div className="h-52 animate-pulse rounded-xl bg-surfaceMuted lg:col-span-2" />
+            <div className="h-52 animate-pulse rounded-xl bg-surfaceMuted" />
+          </div>
+        </div>
+      </AppLayout>
     )
   }
 
   if (error || !flag) {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
-        <div className="p-6">
-          <Card className="border-bad/20 bg-badSoft text-sm text-bad">
-            {error || 'Flag not found'}
-          </Card>
-        </div>
-      </div>
+      <AppLayout title="Flag details" breadcrumb="FlagForge / Flags">
+        <EmptyState
+          icon={ArrowLeft}
+          tone="bad"
+          title="Flag not found"
+          description={error || `No flag with the key "${key}" exists.`}
+          action={
+            <Button variant="secondary" icon={ArrowLeft} onClick={() => navigate('/flags')}>
+              Back to flags
+            </Button>
+          }
+        />
+      </AppLayout>
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title={flag.key} breadcrumb={`FlagForge / Flags / ${flag.key}`} />
+    <AppLayout title={flag.key} breadcrumb="FlagForge / Flags">
+      <button
+        type="button"
+        onClick={() => navigate('/flags')}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+        Back to flags
+      </button>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-content">
-          <button
-            onClick={() => navigate('/flags')}
-            className="mb-4 flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to flags
-          </button>
+      <PageHeader
+        title={<span className="font-mono">{flag.key}</span>}
+        description={flag.description || 'No description yet.'}
+        action={
+          <>
+            <Button variant="secondary" icon={Pencil} onClick={() => setShowEdit(true)}>
+              Edit
+            </Button>
+            <Button variant="danger" icon={Trash2} onClick={() => setConfirmDelete(true)}>
+              Delete
+            </Button>
+          </>
+        }
+      />
 
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-mono text-xl font-semibold text-ink">{flag.key}</h1>
-                <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
-                  {flag.enabled ? 'Enabled' : 'Disabled'}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
+          {flag.enabled ? 'Enabled globally' : 'Disabled globally'}
+        </Badge>
+        <Badge tone="neutral">{flag.type}</Badge>
+        <Badge tone="neutral">default: {JSON.stringify(flag.default_value)}</Badge>
+        {flag.owner_team && <Badge tone="accent">{flag.owner_team}</Badge>}
+      </div>
+
+      {/* items-start: cards size to their own content instead of every card in
+          a row stretching to the tallest one and trailing empty space. */}
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+        {/* Left column: what the flag is, and the rules that shape it. */}
+        <div className="space-y-5 lg:col-span-2">
+          {/* General information */}
+          <Card padded={false}>
+            <CardHeader
+              icon={UserSquare2}
+              title="General information"
+              description="The flag's global configuration"
+            />
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 p-5 sm:grid-cols-3">
+              <Detail label="Type" value={flag.type} mono />
+              <Detail label="Default value" value={JSON.stringify(flag.default_value)} mono />
+              <Detail
+                label="Global status"
+                value={flag.enabled ? 'Enabled' : 'Disabled'}
+                tone={flag.enabled ? 'good' : 'bad'}
+              />
+              <Detail label="Owner team" value={flag.owner_team || '—'} />
+              <Detail label="Created" value={new Date(flag.created_at).toLocaleString()} />
+              <Detail label="Last updated" value={new Date(flag.updated_at).toLocaleString()} />
+            </dl>
+          </Card>
+
+          {/* Targeting rules */}
+          <Card padded={false}>
+            <CardHeader
+              icon={Users}
+              title="Targeting rules"
+              description={`Applied in ${selectedEnv?.name || 'the selected environment'}`}
+              action={
+                <Badge tone={hasTargeting ? 'accent' : 'neutral'}>
+                  {hasTargeting ? 'Configured' : 'No rules'}
                 </Badge>
+              }
+            />
+
+            {targetingLoading ? (
+              <div className="p-5">
+                <div className="h-56 animate-pulse rounded-lg bg-surfaceMuted" />
               </div>
-              <p className="mt-1 text-sm text-muted">{flag.description || 'No description'}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" icon={Pencil} onClick={() => setShowEdit(true)}>
-                Edit
-              </Button>
-              <Button variant="danger" icon={Trash2} onClick={handleDelete}>
-                Delete
-              </Button>
-            </div>
-          </div>
+            ) : (
+              <div className="space-y-5 p-5">
+                <p className="rounded-lg border border-border bg-surfaceMuted px-3.5 py-2.5 text-xs leading-relaxed text-muted">
+                  Evaluated in order: <strong className="text-ink">user IDs</strong> →{' '}
+                  <strong className="text-ink">groups</strong> →{' '}
+                  <strong className="text-ink">percentage rollout</strong> →{' '}
+                  <strong className="text-ink">environment override</strong> → default value.
+                </p>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {/* General information */}
-            <Section title="General information" className="lg:col-span-2 mb-0">
-              <Card>
-                <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3">
-                  <Detail label="Type" value={flag.type} mono />
-                  <Detail label="Default value" value={JSON.stringify(flag.default_value)} mono />
-                  <Detail
-                    label="Global status"
-                    value={flag.enabled ? 'Enabled' : 'Disabled'}
-                    tone={flag.enabled ? 'good' : 'bad'}
-                  />
-                  <Detail label="Owner team" value={flag.owner_team || '—'} />
-                  <Detail label="Created" value={new Date(flag.created_at).toLocaleString()} />
-                  <Detail label="Updated" value={new Date(flag.updated_at).toLocaleString()} />
-                </dl>
-              </Card>
-            </Section>
-
-            {/* Environment resolution */}
-            <Section title={`Resolved in ${selectedEnv?.name || 'environment'}`} className="mb-0">
-              <Card>
-                {evalLoading ? (
-                  <div className="h-16 rounded-lg bg-hoverBg animate-pulse" />
-                ) : evalResult ? (
-                  <div className="rounded-lg border border-border bg-bg p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-mono text-lg font-semibold text-accent">
-                        {JSON.stringify(evalResult.value)}
-                      </p>
-                      <Badge tone={evalResult.cached ? 'warn' : 'good'} dot live={!evalResult.cached}>
-                        {evalResult.cached ? 'Cached' : 'Live'}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted">reason: {evalResult.reason}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted">Couldn't evaluate.</p>
+                {targetingError && (
+                  <p className="rounded-lg border border-bad/25 bg-badSoft px-3 py-2.5 text-sm text-bad">
+                    {targetingError}
+                  </p>
                 )}
 
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    variant="success"
-                    size="sm"
-                    icon={Power}
-                    onClick={() => handleToggleForEnvironment(true)}
-                    className="flex-1"
-                  >
-                    Turn on here
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    icon={PowerOff}
-                    onClick={() => handleToggleForEnvironment(false)}
-                    className="flex-1"
-                  >
-                    Turn off here
-                  </Button>
-                </div>
-                <p className="mt-2 text-xs text-muted">
-                  Sets an environment override without changing the global default.
-                </p>
-              </Card>
-            </Section>
-          </div>
-
-          <Section
-            title="Targeting rule panel"
-            description={`Rules apply to ${selectedEnv?.name || 'the selected environment'}.`}
-          >
-            <Card>
-              {targetingLoading ? (
-                <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
-              ) : (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-ink">Priority summary</p>
-                      <p className="text-xs text-muted">
-                        User IDs, then groups, then percentage rollout, then environment override.
-                      </p>
+                <div className="grid gap-5 md:grid-cols-2">
+                  {/* User whitelist */}
+                  <div className="rounded-xl border border-border p-4">
+                    <div className="mb-3 flex items-start gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-accent">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink">User whitelist</p>
+                        <p className="text-xs text-muted">Highest priority — always wins</p>
+                      </div>
                     </div>
-                    <Badge tone="accent">
-                      {targetingRules.user_ids.length || targetingRules.group_keys.length || targetingRules.percentage !== null
-                        ? 'Configured'
-                        : 'No targeting rules'}
-                    </Badge>
+                    <Textarea
+                      rows={3}
+                      mono
+                      value={userIdInput}
+                      onChange={(event) => setUserIdInput(event.target.value)}
+                      placeholder="alice@example.com, bob@example.com"
+                      aria-label="Targeted user IDs"
+                    />
+                    <div className="mt-3 flex min-h-[1.75rem] flex-wrap gap-2">
+                      {targetedUserIds.length === 0 ? (
+                        <p className="text-xs text-muted">No user IDs added yet.</p>
+                      ) : (
+                        targetedUserIds.map((userId) => (
+                          <Chip
+                            key={userId}
+                            onRemove={() =>
+                              setUserIdInput(
+                                targetedUserIds.filter((item) => item !== userId).join(', ')
+                              )
+                            }
+                          >
+                            {userId}
+                          </Chip>
+                        ))
+                      )}
+                    </div>
                   </div>
 
-                  {targetingError && <p className="text-sm text-bad">{targetingError}</p>}
-
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div className="rounded-xl border border-border bg-surfaceMuted p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
-                          <Check className="h-3.5 w-3.5" />
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-ink">User ID whitelist</p>
-                          <p className="text-xs text-muted">Highest priority — always wins if matched</p>
-                        </div>
+                  {/* Group targeting */}
+                  <div className="rounded-xl border border-border p-4">
+                    <div className="mb-3 flex items-start gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-accent">
+                        <Users className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink">Group targeting</p>
+                        <p className="text-xs text-muted">Click to select, click again to remove</p>
                       </div>
-                      <Textarea
-                        rows={3}
-                        value={userIdInput}
-                        onChange={(e) => setUserIdInput(e.target.value)}
-                        placeholder="alice@example.com, bob@example.com"
-                      />
-                      <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                        Applies to
-                      </p>
-                      {parseList(userIdInput).length === 0 ? (
-                        <p className="text-sm text-muted">No user IDs added yet.</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {parseList(userIdInput).map((userId) => (
-                            <button
-                              key={userId}
-                              type="button"
-                              onClick={() => removeUserId(userId)}
-                              className="group inline-flex items-center gap-1.5 rounded-md border border-accent/25 bg-accentSoft px-2.5 py-1 text-xs font-semibold text-accentDark transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
-                              title="Click to remove"
-                            >
-                              <span className="font-mono">{userId}</span>
-                              <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
-                    <div className="rounded-xl border border-border bg-surfaceMuted p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
-                          <Users className="h-3.5 w-3.5" />
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-ink">Group targeting</p>
-                          <p className="text-xs text-muted">Click a group to target it, click again to remove</p>
-                        </div>
-                      </div>
-
-                      {availableGroups.length === 0 ? (
-                        <p className="text-sm text-muted">
-                          No groups seeded yet — add one in <span className="font-medium text-ink">User groups</span>.
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {availableGroups.map((group) => {
-                            const isSelected = selectedGroupKeys.includes(group)
-                            return (
-                              <button
-                                key={group}
-                                type="button"
-                                onClick={() => toggleGroup(group)}
-                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-semibold font-mono transition-colors ${
-                                  isSelected
-                                    ? 'border-accent bg-accent text-white'
-                                    : 'border-border bg-surface text-muted hover:border-accent/40 hover:text-ink'
-                                }`}
-                              >
-                                {isSelected && <Check className="h-3 w-3" />}
-                                {group}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-
-                      <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                        Extra group keys
+                    {availableGroups.length === 0 ? (
+                      <p className="text-xs text-muted">
+                        No groups defined for this environment yet — add one on the{' '}
+                        <strong className="text-ink">User groups</strong> page.
                       </p>
-                      <Input
-                        value={extraGroupKeysInput}
-                        onChange={(e) => setExtraGroupKeysInput(e.target.value)}
-                        placeholder="beta_users, internal_team"
-                      />
-                      {parseList(extraGroupKeysInput).length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {parseList(extraGroupKeysInput).map((group) => (
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {availableGroups.map((group) => {
+                          const isSelected = selectedGroupKeys.includes(group)
+                          return (
                             <button
                               key={group}
                               type="button"
-                              onClick={() => removeExtraGroup(group)}
-                              className="group inline-flex items-center gap-1.5 rounded-md border border-good/25 bg-goodSoft px-2.5 py-1 text-xs font-semibold font-mono text-good transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
-                              title="Click to remove"
+                              aria-pressed={isSelected}
+                              onClick={() => toggleGroup(group)}
+                              className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-xs font-semibold transition-colors ${
+                                isSelected
+                                  ? 'border-accent bg-accent text-white'
+                                  : 'border-border bg-surface text-muted hover:border-accent/40 hover:text-ink'
+                              }`}
+                            >
+                              {isSelected && <Check className="h-3 w-3" aria-hidden="true" />}
+                              {group}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <Field label="Add group keys" hint="Comma separated — useful before members exist.">
+                        {(id) => (
+                          <Input
+                            id={id}
+                            mono
+                            value={extraGroupKeysInput}
+                            onChange={(event) => setExtraGroupKeysInput(event.target.value)}
+                            placeholder="internal_team, premium_plan"
+                          />
+                        )}
+                      </Field>
+                      {extraGroups.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {extraGroups.map((group) => (
+                            <Chip
+                              key={group}
+                              tone="good"
+                              onRemove={() =>
+                                setExtraGroupKeysInput(
+                                  extraGroups.filter((item) => item !== group).join(', ')
+                                )
+                              }
                             >
                               {group}
-                              <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
-                            </button>
+                            </Chip>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
+                </div>
 
-                  <div className="rounded-xl border border-border bg-surfaceMuted p-4">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface text-accent">
-                          <Percent className="h-3.5 w-3.5" />
-                        </span>
-                        <div>
-                          <p className="text-sm font-semibold text-ink">Percentage rollout</p>
-                          <p className="text-xs text-muted">Same user always lands in the same bucket</p>
-                        </div>
-                      </div>
-                      <span className="rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-sm font-semibold text-accentDark">
-                        {Math.round(Number(percentage) || 0)}%
+                {/* Percentage rollout */}
+                <div className="rounded-xl border border-border p-4">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-accent">
+                        <Percent className="h-4 w-4" aria-hidden="true" />
                       </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink">Percentage rollout</p>
+                        <p className="text-xs text-muted">
+                          Enabled for {Math.round(Number(percentage) || 0)}% of users — the same user
+                          always lands in the same bucket
+                        </p>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={percentage}
-                      onChange={(e) => setPercentage(Number(e.target.value))}
-                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
-                    />
-                    <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
-                      <span>0%</span>
-                      <span>100%</span>
-                    </div>
+                    <span className="rounded-md border border-border bg-surfaceMuted px-2.5 py-1 font-mono text-sm font-semibold text-accent">
+                      {Math.round(Number(percentage) || 0)}%
+                    </span>
                   </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-                    <p className="text-xs text-muted">
-                      Targeting changes invalidate the cache for this flag immediately.
-                    </p>
-                    <Button onClick={handleSaveTargeting} loading={targetingSaving} icon={Sparkles} size="lg">
-                      Save targeting rules
-                    </Button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={percentage}
+                    onChange={(event) => setPercentage(Number(event.target.value))}
+                    aria-label="Rollout percentage"
+                    className="w-full"
+                    style={{
+                      background: `linear-gradient(to right, rgb(var(--accent)) ${percentage}%, rgb(var(--surface-sunken)) ${percentage}%)`,
+                    }}
+                  />
+                  <div className="mt-2 flex justify-between text-xs text-muted">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
                   </div>
                 </div>
-              )}
-            </Card>
-          </Section>
 
-          <Section
-            title="Evaluation test panel"
-            description="Type a fake user ID and optional groups to see what the flag resolves to."
-          >
-            <Card>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Test user ID">
+                {/* Non-boolean flags need to say what value a matched rule serves. */}
+                {!isBoolean && (
+                  <div className="rounded-xl border border-border p-4">
+                    <Field
+                      label="Value served to targeted users"
+                      hint={`Leave blank to serve the flag's default (${JSON.stringify(
+                        flag.default_value
+                      )}).`}
+                    >
+                      {(id) => (
+                        <Input
+                          id={id}
+                          mono
+                          type={flag.type === 'number' ? 'number' : 'text'}
+                          step={flag.type === 'number' ? 'any' : undefined}
+                          value={targetedValue}
+                          onChange={(event) => setTargetedValue(event.target.value)}
+                          placeholder={flag.type === 'number' ? '42' : 'variant-b'}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+                  <p className="text-xs text-muted">
+                    Saving clears this flag's cache for {selectedEnv?.name || 'the environment'}{' '}
+                    immediately.
+                  </p>
+                  <Button icon={Save} onClick={handleSaveTargeting} loading={targetingSaving}>
+                    Save targeting rules
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Right column: live resolution and the test panel, kept in view
+            while the targeting rules on the left are edited. */}
+        <div className="space-y-5 lg:sticky lg:top-24">
+          {/* Resolution in the selected environment */}
+          <Card padded={false}>
+            <CardHeader
+              icon={Power}
+              title={`Resolved in ${selectedEnv?.name || 'environment'}`}
+              description="What /evaluate returns right now"
+            />
+            <div className="p-5">
+              {evalLoading ? (
+                <div className="h-20 animate-pulse rounded-lg bg-surfaceMuted" />
+              ) : evalResult ? (
+                <div className="rounded-lg border border-border bg-surfaceMuted p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate font-mono text-2xl font-semibold text-accent">
+                      {JSON.stringify(evalResult.value)}
+                    </p>
+                    <Badge tone={evalResult.cached ? 'warn' : 'good'} dot live={!evalResult.cached}>
+                      {evalResult.cached ? 'Cached' : 'Live'}
+                    </Badge>
+                  </div>
+                  <p className="mt-1.5 text-xs text-muted">
+                    {REASON_LABEL[evalResult.reason] || evalResult.reason}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted">Couldn't evaluate this flag.</p>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button
+                  variant="success"
+                  size="sm"
+                  icon={Power}
+                  loading={overrideBusy === 'on'}
+                  disabled={Boolean(overrideBusy)}
+                  onClick={() => handleToggleForEnvironment(true)}
+                >
+                  Force on
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={PowerOff}
+                  loading={overrideBusy === 'off'}
+                  disabled={Boolean(overrideBusy)}
+                  onClick={() => handleToggleForEnvironment(false)}
+                >
+                  Force off
+                </Button>
+              </div>
+              <p className="mt-2.5 text-xs leading-relaxed text-muted">
+                Sets an environment override without touching the global default. Targeting rules
+                still win over it.
+              </p>
+            </div>
+          </Card>
+
+          {/* Evaluation test panel */}
+          <Card padded={false}>
+            <CardHeader
+              icon={Play}
+              title="Evaluation test panel"
+              description="Try a user against the live rules"
+            />
+            <div className="space-y-4 p-5">
+              <Field label="Test user ID">
+                {(id) => (
                   <Input
+                    id={id}
+                    mono
                     value={testUserId}
-                    onChange={(e) => setTestUserId(e.target.value)}
+                    onChange={(event) => setTestUserId(event.target.value)}
                     placeholder="alice@example.com"
                   />
-                </Field>
-              </div>
+                )}
+              </Field>
 
-              <div className="mt-4 rounded-xl border border-dashed border-border bg-surfaceMuted p-4">
+              <Field label="Test groups" hint="Comma separated. Added to any stored memberships.">
+                {(id) => (
+                  <Input
+                    id={id}
+                    mono
+                    value={testGroups}
+                    onChange={(event) => setTestGroups(event.target.value)}
+                    placeholder="beta_users, premium_plan"
+                  />
+                )}
+              </Field>
+
+              <div className="rounded-xl border border-dashed border-border bg-surfaceMuted p-4">
                 {testLoading ? (
-                  <div className="h-14 animate-pulse rounded-xl bg-hoverBg" />
+                  <div className="h-14 animate-pulse rounded-lg bg-surfaceSunken" />
                 ) : testResult ? (
-                  <div className="space-y-2">
+                  <>
                     <div className="flex items-center justify-between gap-3">
-                      <p className="font-mono text-2xl font-semibold text-accent">
+                      <p className="truncate font-mono text-2xl font-semibold text-accent">
                         {JSON.stringify(testResult.value)}
                       </p>
                       <Badge tone={testResult.cached ? 'warn' : 'good'} dot live={!testResult.cached}>
                         {testResult.cached ? 'Cached' : 'Live'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted">Resolved by {testResult.reason}</p>
-                  </div>
+                    <p className="mt-1.5 text-sm text-muted">
+                      Resolved by {REASON_LABEL[testResult.reason] || testResult.reason}
+                    </p>
+                  </>
                 ) : testError ? (
                   <p className="text-sm text-bad">{testError}</p>
                 ) : (
-                  <p className="text-sm text-muted">No evaluation yet.</p>
+                  <p className="text-sm text-muted">Enter a user to evaluate.</p>
                 )}
               </div>
 
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-muted">
-                  The panel re-evaluates after a short pause so you can see rule priority changes quickly.
-                </p>
-                <Button size="sm" variant="secondary" icon={Play} onClick={runTestEvaluation} loading={testLoading}>
-                  Run evaluation
-                </Button>
-              </div>
-            </Card>
-          </Section>
-
-          {/* History */}
-          <Section title="History" description="Every change to this flag's configuration">
-            <Card padded={false}>
-              {versions.length === 0 ? (
-                <p className="p-4 text-sm text-muted">No version history yet.</p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {versions.map((v) => (
-                    <li key={v.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-hoverBg">
-                        <History className="h-3.5 w-3.5 text-muted" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-ink">
-                          v{v.version_number} &middot; {v.change_note || 'Updated'}
-                        </p>
-                        <p className="text-xs text-muted">
-                          {new Date(v.created_at).toLocaleString()} by {v.created_by}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </Section>
+              <Button
+                variant="secondary"
+                icon={Play}
+                onClick={runTestEvaluation}
+                loading={testLoading}
+                className="w-full"
+              >
+                Run evaluation
+              </Button>
+            </div>
+          </Card>
         </div>
+
+        {/* Version history */}
+        <Card padded={false} className="lg:col-span-3">
+          <CardHeader
+            icon={History}
+            title="Version history"
+            description="Every change to this flag's global configuration"
+            action={
+              <Badge tone="neutral">
+                {versions.length} version{versions.length === 1 ? '' : 's'}
+              </Badge>
+            }
+          />
+          {versions.length === 0 ? (
+            <p className="p-5 text-sm text-muted">No version history yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {versions.map((version) => (
+                <li key={version.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted">
+                    <History className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-ink">
+                      <span className="font-mono font-semibold">v{version.version_number}</span>
+                      <span className="mx-1.5 text-muted">·</span>
+                      {version.change_note || 'Updated'}
+                    </p>
+                    <p className="text-xs text-muted">by {version.created_by}</p>
+                  </div>
+                  <span className="shrink-0 font-mono text-xs text-muted">
+                    {new Date(version.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
 
       {showEdit && (
@@ -587,32 +783,30 @@ export default function FlagDetailPage() {
           error={editError}
         />
       )}
-    </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title={`Delete ${flag.key}?`}
+        confirmLabel="Delete flag"
+      >
+        This removes the flag, its version history, and every targeting rule and environment
+        override attached to it. Applications calling <code className="font-mono">/evaluate</code>{' '}
+        for this key will start getting a 404.
+      </ConfirmDialog>
+    </AppLayout>
   )
 }
 
-function isNotFoundError(err) {
-  return /not found/i.test(err?.message || '')
-}
-
 function Detail({ label, value, mono, tone }) {
+  const toneClass = tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : 'text-ink'
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
-      <dd
-        className={`mt-0.5 text-sm ${mono ? 'font-mono' : ''} ${
-          tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : 'text-ink'
-        }`}
-      >
+    <div className="min-w-0">
+      <dt className="text-2xs font-semibold uppercase tracking-label text-muted">{label}</dt>
+      <dd className={`mt-1 truncate text-sm ${mono ? 'font-mono' : ''} ${toneClass}`} title={value}>
         {value}
       </dd>
     </div>
   )
-}
-
-function parseList(value) {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
 }
