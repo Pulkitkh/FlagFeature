@@ -15,6 +15,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.command import upgrade
 from alembic.config import Config
 from alembic.migration import MigrationContext
+import sqlalchemy as sa
 from sqlalchemy import create_engine, inspect, text
 
 from app import models
@@ -277,5 +278,90 @@ def test_fresh_database_needs_no_stamping(tmp_path):
     engine = create_engine(url)
     try:
         assert "flag_cleanup_reviews" in inspect(engine).get_table_names()
+    finally:
+        engine.dispose()
+
+
+def test_postgres_role_column_does_not_recreate_the_enum():
+    """The actual fix, guarded directly.
+
+    On Postgres, migration 0003 creates the `userrole` type itself and must then
+    hand `create_table` a column with `create_type=False`. Without that flag
+    SQLAlchemy emits a second CREATE TYPE with checkfirst=False and the
+    migration dies with "type userrole already exists" — which is exactly what
+    happened in a real deployment. SQLite has no named types, so only this
+    check catches a regression.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "migration_0003",
+        BACKEND_ROOT / "alembic" / "versions" / "0003_users_and_authentication.py",
+    )
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+
+    class _FakeDialect:
+        name = "postgresql"
+        # Attributes SQLAlchemy's ENUM.create() consults on the way through.
+        supports_native_enum = True
+        identifier_preparer = None
+
+    class _FakeBind:
+        """Records the explicit enum creation without touching a database."""
+
+        dialect = _FakeDialect()
+        ddl_runs = 0
+
+        def _run_ddl_visitor(self, *args, **kwargs):
+            _FakeBind.ddl_runs += 1
+
+    column_type = migration._role_column_type(_FakeBind())
+
+    assert _FakeBind.ddl_runs == 1, "the enum should be created explicitly, once"
+    assert column_type.create_type is False, (
+        "create_table would emit a second CREATE TYPE and the migration would fail"
+    )
+
+    # And the non-Postgres path stays a plain Enum, since SQLite needs no type.
+    class _SqliteDialect:
+        name = "sqlite"
+
+    class _SqliteBind:
+        dialect = _SqliteDialect()
+
+    assert isinstance(migration._role_column_type(_SqliteBind()), sa.Enum)
+
+
+def test_role_enum_is_created_exactly_once(tmp_path, monkeypatch):
+    """Regression: 0003 used to create the Postgres enum, then let create_table
+    create it again, failing with 'type userrole already exists'.
+
+    SQLite has no named types so the original bug can't reproduce there. What
+    can be checked without Postgres is that the migration never emits two
+    CREATE TYPE statements for the same enum — which is what the fix guarantees.
+    """
+    from alembic.migration import MigrationContext as _MigrationContext
+
+    url = f"sqlite:///{tmp_path / 'enum.db'}"
+    statements: list[str] = []
+
+    real_execute = _MigrationContext.execute
+
+    def recording_execute(self, sql, *args, **kwargs):
+        statements.append(str(sql))
+        return real_execute(self, sql, *args, **kwargs)
+
+    monkeypatch.setattr(_MigrationContext, "execute", recording_execute)
+    command.upgrade(_alembic_config(url), "head")
+
+    create_type_statements = [s for s in statements if "CREATE TYPE" in s.upper()]
+    assert len(create_type_statements) <= 1, (
+        "the role enum must not be created twice:\n" + "\n".join(create_type_statements)
+    )
+
+    engine = create_engine(url)
+    try:
+        assert "users" in inspect(engine).get_table_names()
     finally:
         engine.dispose()
