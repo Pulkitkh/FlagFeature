@@ -3,7 +3,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app import audit, models, schemas
+from app import audit, models, schemas, security
+from app.config import get_settings
 from app.redis_client import (
     invalidate_evaluation_cache,
     invalidate_evaluation_cache_for_environment,
@@ -11,6 +12,10 @@ from app.redis_client import (
 
 # How many recent audit rows the activity chart scans before bucketing by day.
 _ACTIVITY_SCAN_LIMIT = 5000
+
+# Compared against when the email doesn't exist, so a failed login costs about
+# the same either way and can't be used to discover which accounts are real.
+_DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO3nQz1J8lLhLbCXWmJm4bC9Zx2Lz4hLK"
 
 
 # ---------- Environments ----------
@@ -706,3 +711,152 @@ def _activity_by_day(db: Session, days: int) -> list[dict]:
         }
         for offset in range(days)
     ]
+
+
+# ---------- Users & authentication ----------
+
+
+def get_user_by_email(db: Session, email: str) -> models.User | None:
+    # Emails are stored and compared lowercased, so "Alice@" and "alice@" are
+    # the same account rather than two.
+    return db.query(models.User).filter(models.User.email == email.strip().lower()).first()
+
+
+def list_users(db: Session) -> list[models.User]:
+    return db.query(models.User).order_by(models.User.email.asc()).all()
+
+
+def count_users(db: Session) -> int:
+    return db.query(models.User).count()
+
+
+def create_user(
+    db: Session,
+    email: str,
+    password: str,
+    name: str = "",
+    role: models.UserRole = models.UserRole.viewer,
+    actor: str = "system",
+) -> models.User:
+    user = models.User(
+        email=email.strip().lower(),
+        name=name.strip(),
+        password_hash=security.hash_password(password),
+        role=role,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    _write_audit(
+        db,
+        actor=actor,
+        action="created",
+        entity_type="user",
+        entity_id=str(user.id),
+        entity_key=user.email,
+        after={"email": user.email, "name": user.name, "role": user.role.value, "is_active": True},
+    )
+    return user
+
+
+def update_user(
+    db: Session,
+    user: models.User,
+    name: str | None = None,
+    role: models.UserRole | None = None,
+    is_active: bool | None = None,
+    password: str | None = None,
+    actor: str = "system",
+) -> models.User:
+    before = {
+        "email": user.email,
+        "name": user.name,
+        "role": user.role.value,
+        "is_active": user.is_active,
+    }
+
+    if name is not None:
+        user.name = name.strip()
+    if role is not None:
+        user.role = role
+    if is_active is not None:
+        user.is_active = is_active
+    if password is not None:
+        user.password_hash = security.hash_password(password)
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    after = {
+        "email": user.email,
+        "name": user.name,
+        "role": user.role.value,
+        "is_active": user.is_active,
+    }
+    # A password change moves no visible field, so it is called out explicitly
+    # rather than being recorded as a change with an empty diff.
+    if password is not None:
+        before["password"] = "unchanged"
+        after["password"] = "reset"
+
+    _write_audit(
+        db,
+        actor=actor,
+        action="updated",
+        entity_type="user",
+        entity_id=str(user.id),
+        entity_key=user.email,
+        before=before,
+        after=after,
+    )
+    return user
+
+
+def record_login(db: Session, user: models.User) -> models.User:
+    user.last_login_at = datetime.now(timezone.utc)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def authenticate(db: Session, email: str, password: str) -> models.User | None:
+    """Verify credentials. Returns None for every kind of failure.
+
+    Deliberately gives the caller no way to tell "no such user" from "wrong
+    password" — that distinction is how an attacker enumerates accounts. The
+    hash is still computed for a missing user so the response takes about the
+    same time either way.
+    """
+    user = get_user_by_email(db, email)
+    if user is None:
+        security.verify_password(password, _DUMMY_HASH)
+        return None
+    if not user.is_active:
+        return None
+    if not security.verify_password(password, user.password_hash):
+        return None
+    return user
+
+
+def ensure_bootstrap_admin(db: Session) -> models.User | None:
+    """Create the first admin so a fresh installation can be signed into.
+
+    Only ever runs when the users table is empty, so it can't resurrect or
+    overwrite an account somebody has deliberately removed or changed.
+    """
+    if count_users(db) > 0:
+        return None
+
+    settings = get_settings()
+    return create_user(
+        db,
+        email=settings.bootstrap_admin_email,
+        password=settings.bootstrap_admin_password,
+        name=settings.bootstrap_admin_name,
+        role=models.UserRole.admin,
+        actor="system",
+    )

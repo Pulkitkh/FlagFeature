@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import { Badge, Button, Card, Dropdown } from './ui'
 
 const STALE_OPTIONS = [
@@ -22,6 +23,7 @@ const STATE_META = {
  */
 export default function CleanupPanel() {
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const [staleDays, setStaleDays] = useState('30')
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -136,14 +138,16 @@ export default function CleanupPanel() {
                     >
                       Open
                     </Button>
-                    <Button
-                      size="sm"
-                      icon={Check}
-                      loading={busyKey === item.flag_key}
-                      onClick={() => markReviewed(item.flag_key)}
-                    >
-                      Mark reviewed
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        icon={Check}
+                        loading={busyKey === item.flag_key}
+                        onClick={() => markReviewed(item.flag_key)}
+                      >
+                        Mark reviewed
+                      </Button>
+                    )}
                   </div>
                 </li>
               )

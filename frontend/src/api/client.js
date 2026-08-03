@@ -1,8 +1,32 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-// Recorded against every change in the audit log. Without an auth layer the
-// dashboard declares who it is; the backend falls back to "system".
-export const ACTOR = 'dashboard'
+const TOKEN_KEY = 'flagforge:token'
+
+// Set once at sign-in and read on every request. Kept here rather than passed
+// through every call site, so no request can accidentally go out unsigned.
+export function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // Private browsing: the session just won't survive a reload.
+  }
+}
+
+// Called when the API rejects our token, so the app can bounce to the login
+// screen from inside the fetch layer without importing React here.
+let onUnauthorized = null
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler
+}
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -13,11 +37,16 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
+  const token = getToken()
   let res
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', 'X-Actor': ACTOR },
       ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
     })
   } catch {
     // fetch only rejects on a network-level failure, which deserves a clearer
@@ -26,6 +55,13 @@ async function request(path, options = {}) {
   }
 
   if (!res.ok) {
+    // An expired or revoked token: drop it and let the app show the login
+    // screen rather than leaving every page stuck on an error.
+    if (res.status === 401 && !path.startsWith('/auth/login')) {
+      setToken(null)
+      onUnauthorized?.()
+    }
+
     let detail = res.statusText
     try {
       const body = await res.json()
@@ -59,6 +95,20 @@ function queryString(params) {
 
 export const api = {
   health: () => request('/health'),
+
+  login: (email, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  me: () => request('/auth/me'),
+  changeOwnPassword: (currentPassword, newPassword) =>
+    request('/auth/me/password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    }),
+  listAccounts: () => request('/auth/users'),
+  createAccount: (payload) =>
+    request('/auth/users', { method: 'POST', body: JSON.stringify(payload) }),
+  updateAccount: (id, payload) =>
+    request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
 
   listEnvironments: () => request('/environments'),
   createEnvironment: (payload) =>

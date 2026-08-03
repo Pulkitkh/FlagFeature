@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import EnvironmentSwitcher from './EnvironmentSwitcher'
+import UserMenu from './UserMenu'
 
 export default function Navbar({ title, breadcrumb }) {
   const [health, setHealth] = useState(null)
@@ -29,6 +30,7 @@ export default function Navbar({ title, breadcrumb }) {
           {health === null ? 'Checking…' : isOk ? 'API connected' : 'API unreachable'}
         </div>
         <EnvironmentSwitcher />
+        <UserMenu />
       </div>
     </header>
   )

@@ -44,6 +44,11 @@ services:
       # always current — create_all would only ever add missing tables and
       # would silently leave an existing table missing its new columns.
       AUTO_CREATE_TABLES: "false"
+      # Override these before exposing the stack to anyone. The app logs a
+      # warning at startup while the defaults are still in use.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-change-me}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@flagforge.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-admin12345}
     ports:
       - "8000:8000"
 

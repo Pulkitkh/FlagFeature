@@ -23,18 +23,27 @@ npm run preview             # serve that bundle locally
 
 | Route | What it does |
 |---|---|
+| `/login` | Sign in. Everything else redirects here without a session |
 | `/flags` | Flag table with search, status filter and sort, the create form, and the cleanup-suggestions panel |
 | `/flags/:key` | Configuration, per-environment resolution, targeting rules, evaluation test panel, evaluation-volume chart, version history |
 | `/environments` | All environments, and how a chosen flag resolves in each |
 | `/groups` | Group memberships for the selected environment |
 | `/audit-log` | Filterable table of every change, with a JSON diff modal |
+| `/accounts` | Admin only: add people, set roles, reset passwords, deactivate |
 
 ## How it's put together
 
-- `src/api/client.js` — the single place that talks to the API. It sends an
-  `X-Actor` header so changes are attributed in the audit log, unwraps FastAPI
-  validation errors into readable messages, and encodes query parameters
-  properly (an ISO timestamp's `+` would otherwise arrive as a space).
+- `src/api/client.js` — the single place that talks to the API. It attaches the
+  bearer token to every request, clears it and bounces to the login screen on a
+  401, unwraps FastAPI validation errors into readable messages, and encodes
+  query parameters properly (an ISO timestamp's `+` would otherwise arrive as a
+  space).
+- `src/context/AuthContext.jsx` — the signed-in user, token persistence, and the
+  `isAdmin` flag every write action is gated on. The backend enforces the same
+  rules; hiding buttons is a courtesy, not the control.
+- `src/components/RequireAuth.jsx` — route guard. Shows a spinner while a stored
+  token is being validated, so a signed-in user reloading doesn't see a flash of
+  the login screen.
 - `src/context/EnvironmentContext.jsx` — the selected environment, shared by
   every page and persisted across reloads. Seeds development/staging/production
   on first run.

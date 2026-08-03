@@ -1,15 +1,18 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from app import crud
 from app.config import get_settings
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
 from app.redis_client import ping_redis
 from app.routers import (
     analytics,
     audit,
+    auth,
     cleanup,
     environments,
     evaluation,
@@ -19,6 +22,7 @@ from app.routers import (
 )
 
 settings = get_settings()
+logger = logging.getLogger("flagforge")
 
 
 @asynccontextmanager
@@ -28,7 +32,44 @@ async def lifespan(app: FastAPI):
     # instead, so schema changes are versioned rather than inferred.
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
+
+    _bootstrap_first_admin()
+    _warn_about_insecure_defaults()
     yield
+
+
+def _bootstrap_first_admin() -> None:
+    """Create the first admin so a fresh installation can be signed into.
+
+    Only runs when the users table is empty. Failures are logged rather than
+    raised — a database that isn't ready yet shouldn't stop the app from
+    starting and reporting that on /health.
+    """
+    db = SessionLocal()
+    try:
+        created = crud.ensure_bootstrap_admin(db)
+        if created is not None:
+            logger.warning(
+                "Created the first admin account: %s. Sign in and change this password.",
+                created.email,
+            )
+    except Exception:
+        logger.exception("Could not create the bootstrap admin account")
+    finally:
+        db.close()
+
+
+def _warn_about_insecure_defaults() -> None:
+    if settings.using_default_jwt_secret:
+        logger.warning(
+            "JWT_SECRET is the built-in development value. Anyone who knows it can mint "
+            "valid tokens — set a real secret before exposing this to anyone."
+        )
+    if settings.using_default_admin_password:
+        logger.warning(
+            "BOOTSTRAP_ADMIN_PASSWORD is the documented default. Change the admin "
+            "password after signing in, or set the variable before first start."
+        )
 
 
 app = FastAPI(
@@ -36,9 +77,12 @@ app = FastAPI(
     description=(
         "Feature flag management platform: flag CRUD, per-environment overrides, "
         "user/group/percentage targeting, a cached evaluation endpoint, audit "
-        "logging with diffs, evaluation analytics, and cleanup suggestions."
+        "logging with diffs, evaluation analytics, and cleanup suggestions.\n\n"
+        "Admin endpoints require a bearer token from `POST /auth/login`. "
+        "`/evaluate` and `/snapshot` are deliberately public so the middleware "
+        "SDK and consuming applications work without credentials."
     ),
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
@@ -69,6 +113,7 @@ def health_check():
     }
 
 
+app.include_router(auth.router)
 app.include_router(environments.router)
 app.include_router(flags.router)
 app.include_router(evaluation.router)

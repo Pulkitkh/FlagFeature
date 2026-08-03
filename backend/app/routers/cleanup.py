@@ -3,9 +3,11 @@ from sqlalchemy.orm import Session
 
 from app import cleanup, crud, schemas
 from app.database import get_db
-from app.deps import get_actor
+from app.deps import get_actor, get_current_user, require_admin
 
-router = APIRouter(prefix="/cleanup", tags=["cleanup"])
+router = APIRouter(
+    prefix="/cleanup", tags=["cleanup"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("/suggestions", response_model=schemas.CleanupSuggestionsOut)
@@ -33,7 +35,7 @@ def get_cleanup_suggestions(
     return {"stale_days": stale_days, "suggestions": suggestions}
 
 
-@router.post("/{key}/review", response_model=schemas.CleanupReviewOut)
+@router.post("/{key}/review", response_model=schemas.CleanupReviewOut, dependencies=[Depends(require_admin)])
 def review_flag(
     key: str,
     payload: schemas.CleanupReviewCreate,
@@ -48,7 +50,7 @@ def review_flag(
     return cleanup.mark_reviewed(db, flag, reviewed_by=actor, note=payload.note or "")
 
 
-@router.delete("/{key}/review", status_code=204)
+@router.delete("/{key}/review", status_code=204, dependencies=[Depends(require_admin)])
 def unreview_flag(key: str, db: Session = Depends(get_db)):
     """Undo a review, putting the flag back in the suggestion list."""
     flag = crud.get_flag_by_key(db, key)

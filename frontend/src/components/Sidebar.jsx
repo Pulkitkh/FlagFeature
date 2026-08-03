@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { Flag, Layers, Clock, Users } from 'lucide-react'
+import { Flag, Layers, Clock, Users, UserCog } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const NAV_ITEMS = [
   { to: '/flags', label: 'Flags', icon: Flag },
@@ -9,6 +10,13 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar() {
+  const { isAdmin } = useAuth()
+  // Managing accounts is admin-only, so a viewer isn't shown a door they
+  // can't open. The route guards it too.
+  const navItems = isAdmin
+    ? [...NAV_ITEMS, { to: '/accounts', label: 'Accounts', icon: UserCog }]
+    : NAV_ITEMS
+
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-3 lg:flex">
       <div className="flex flex-col h-full rounded-xl border border-border bg-surface">
@@ -30,7 +38,7 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex flex-col gap-0.5 px-2.5">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}

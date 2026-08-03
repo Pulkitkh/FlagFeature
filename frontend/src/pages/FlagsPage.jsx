@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Flag, CheckCircle2, XCircle, Clock, Search } from 'lucide-react'
 import { api } from '../api/client'
+import { useAuth } from '../context/AuthContext'
 import FlagTable from '../components/FlagTable'
 import FlagForm from '../components/FlagForm'
 import CleanupPanel from '../components/CleanupPanel'
@@ -10,6 +11,7 @@ import { PageHeader, Section, StatCard, Button, Input, Dropdown } from '../compo
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export default function FlagsPage() {
+  const { isAdmin } = useAuth()
   const [flags, setFlags] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -103,9 +105,11 @@ export default function FlagsPage() {
             title="Feature flags"
             description="Create flags and control them per environment without a deploy."
             action={
-              <Button icon={Plus} onClick={() => setShowForm(true)}>
-                Create flag
-              </Button>
+              isAdmin && (
+                <Button icon={Plus} onClick={() => setShowForm(true)}>
+                  Create flag
+                </Button>
+              )
             }
           />
 

@@ -77,6 +77,7 @@ flagforge/
 | `audit_log` | every change, with actor, before/after state and a JSON diff |
 | `flag_evaluation_stats` | hourly evaluation counts, flushed out of Redis |
 | `flag_cleanup_reviews` | stale-flag suggestions somebody has signed off |
+| `users` | dashboard accounts: email, bcrypt hash, role, active flag |
 
 Indexes on `flags.key` and the `environment_id` foreign keys keep the
 lookups that happen on every evaluation call fast.
@@ -115,6 +116,71 @@ Test coverage (33 tests, `pytest -q`):
   invalidation after every kind of change, per-user cache isolation, the audit
   log, and the overview aggregates.
 
+## Authentication
+
+The dashboard sits behind a login. Admin endpoints require a bearer token;
+`/evaluate`, `/snapshot` and `/health` stay public so the middleware SDK and
+consuming applications keep working without credentials.
+
+### Signing in the first time
+
+On first start, when the users table is empty, a single admin is created:
+
+| | |
+|---|---|
+| Email | `admin@flagforge.local` |
+| Password | `admin12345` |
+
+**Change it once you're in** (user menu → Change password), or set
+`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` before the first start.
+The bootstrap only ever runs against an empty users table, so it can't
+resurrect an account you deliberately removed.
+
+### Roles
+
+| Role | Can |
+|---|---|
+| **admin** | Everything: create and change flags, targeting, environments, groups, cleanup reviews and accounts |
+| **viewer** | Read everything — flags, analytics, the audit log — and change nothing |
+
+Roles are enforced on the server. The dashboard hides what a viewer can't do,
+but the API returns 403 regardless of what the UI shows.
+
+### Who changed what
+
+The audit log's actor is taken from the verified token, not from a header. It
+cannot be forged by whoever calls the API — there's a test for exactly that
+(`test_audit_actor_comes_from_the_token_not_a_header`).
+
+The one exception is the bootstrap admin's own creation row, recorded as
+`system`, because nobody was signed in when it happened.
+
+### Configuration
+
+| Variable | Default | Notes |
+|---|---|---|
+| `JWT_SECRET` | a development placeholder | **Set this.** Anyone who knows it can mint valid tokens |
+| `ACCESS_TOKEN_MINUTES` | `720` (12 hours) | How long a session lasts |
+| `BOOTSTRAP_ADMIN_EMAIL` | `admin@flagforge.local` | First admin, created only on an empty database |
+| `BOOTSTRAP_ADMIN_PASSWORD` | `admin12345` | Same |
+
+The app logs a warning at startup if either default is still in use.
+
+### What this is not
+
+Worth being straight about the limits, since it's an obvious question:
+
+- **Tokens can't be revoked individually.** Deactivating an account blocks it on
+  the next request, which is the practical equivalent, but a stolen token stays
+  valid until it expires. A token version column or a deny-list would fix it.
+- **No refresh tokens.** When a session expires you sign in again.
+- **No rate limiting on login.** Passwords are bcrypt-hashed (cost 12) so
+  guessing is slow, and failures don't reveal whether an email exists, but a
+  determined attacker isn't throttled.
+- **The token is in `localStorage`,** which is readable by any script running on
+  the page. That's a reasonable trade for an internal admin tool; a
+  `Secure; HttpOnly` cookie would be stronger.
+
 ## Dashboard pages
 
 | Page | What it does |
@@ -124,6 +190,7 @@ Test coverage (33 tests, `pytest -q`):
 | **Environments** | All environments, plus how a chosen flag resolves in each one |
 | **User groups** | Group memberships per environment, targetable from any flag |
 | **Audit log** | Filterable table of every change, with a JSON diff modal |
+| **Accounts** (admin) | Add people, set their role, reset passwords, deactivate access |
 
 The environment switcher in the top bar drives every page: targeting rules,
 group memberships, the analytics chart's environment scope, and the audit log's
@@ -344,9 +411,17 @@ invalidation safe.
 
 ## API quick reference
 
+Every endpoint below requires a bearer token except `/health`, `/evaluate`,
+`/snapshot/{env_key}` and `/auth/login`.
+
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/health` | server + DB + Redis status |
+| GET | `/health` | server + DB + Redis status (public) |
+| POST | `/auth/login` | email + password → bearer token (public) |
+| GET | `/auth/me` | the signed-in account |
+| POST | `/auth/me/password` | change your own password |
+| GET/POST | `/auth/users` | list / create accounts (admin) |
+| PUT | `/auth/users/{id}` | change role, deactivate, reset password (admin) |
 | GET/POST | `/environments` | list / create environments |
 | PUT | `/environments/{key}` | rename an environment |
 | GET/PUT | `/environments/{key}/user-groups` | list / upsert group memberships for an environment |
@@ -365,8 +440,8 @@ invalidation safe.
 | POST/DELETE | `/cleanup/{key}/review` | mark a suggestion reviewed / undo it |
 | GET | `/snapshot/{env_key}` | full configuration for one environment — what the middleware polls |
 
-Every mutating endpoint accepts an `X-Actor` header, recorded against the
-change in the audit log.
+Mutating endpoints require an admin token; read endpoints accept any signed-in
+account. The audit log records the token's subject as the actor.
 
 Interactive docs are auto-generated at `/docs` (Swagger) once the backend is running.
 

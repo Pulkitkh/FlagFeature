@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 
 from app import crud, schemas
 from app.database import get_db
+from app.deps import get_current_user
 
-router = APIRouter(tags=["overview"])
+router = APIRouter(tags=["overview"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/overview", response_model=schemas.OverviewOut)

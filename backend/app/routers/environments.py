@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 
 from app import crud, schemas
 from app.database import get_db
-from app.deps import get_actor
+from app.deps import get_actor, get_current_user, require_admin
 
-router = APIRouter(prefix="/environments", tags=["environments"])
+router = APIRouter(
+    prefix="/environments", tags=["environments"], dependencies=[Depends(get_current_user)]
+)
 
 
 def _get_environment_or_404(db: Session, key: str):
@@ -21,7 +23,7 @@ def list_environments(db: Session = Depends(get_db)):
     return crud.list_environments(db)
 
 
-@router.post("", response_model=schemas.EnvironmentOut, status_code=201)
+@router.post("", response_model=schemas.EnvironmentOut, status_code=201, dependencies=[Depends(require_admin)])
 def create_environment(
     payload: schemas.EnvironmentCreate,
     db: Session = Depends(get_db),
@@ -34,7 +36,7 @@ def create_environment(
         raise HTTPException(status_code=409, detail=f"Environment '{payload.key}' already exists")
 
 
-@router.put("/{key}", response_model=schemas.EnvironmentOut)
+@router.put("/{key}", response_model=schemas.EnvironmentOut, dependencies=[Depends(require_admin)])
 def update_environment(
     key: str,
     payload: schemas.EnvironmentUpdate,
@@ -57,7 +59,7 @@ def list_user_groups(key: str, db: Session = Depends(get_db)):
     return crud.list_user_groups(db, environment)
 
 
-@router.put("/{key}/user-groups", response_model=schemas.UserGroupMembersOut)
+@router.put("/{key}/user-groups", response_model=schemas.UserGroupMembersOut, dependencies=[Depends(require_admin)])
 def upsert_user_groups(
     key: str,
     payload: schemas.UserGroupMembersUpsert,
@@ -68,7 +70,7 @@ def upsert_user_groups(
     return crud.upsert_user_group_members(db, environment, payload, actor=actor)
 
 
-@router.delete("/{key}/user-groups/{group_key}/{user_id}", status_code=204)
+@router.delete("/{key}/user-groups/{group_key}/{user_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_user_group_member(
     key: str,
     group_key: str,

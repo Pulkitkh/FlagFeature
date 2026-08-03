@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 
 from app import analytics, crud, schemas
 from app.database import get_db
+from app.deps import get_current_user
 
-router = APIRouter(tags=["analytics"])
+router = APIRouter(tags=["analytics"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/flags/{key}/analytics", response_model=schemas.FlagAnalyticsOut)

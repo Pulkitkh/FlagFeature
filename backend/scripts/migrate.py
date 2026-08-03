@@ -38,7 +38,12 @@ from app.config import get_settings  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(levelname)s [migrate] %(message)s")
 logger = logging.getLogger("migrate")
 
-# The revision whose schema matches what pre-Milestone-3 `create_all` produced.
+# Marker -> the revision a database showing that marker has already reached.
+# Checked newest first, so a database is stamped at the latest revision it
+# genuinely matches and everything after it still gets applied.
+#
+# Getting this wrong is silent and nasty: stamp too high and the migrations
+# that would have created the missing tables are skipped.
 LEGACY_REVISION = "0001"
 
 
@@ -77,11 +82,18 @@ def detect_existing_revision(engine) -> str | None:
         return None
 
     audit_columns = {column["name"] for column in inspector.get_columns("audit_log")}
-    milestone_3_applied = "entity_key" in audit_columns and "flag_evaluation_stats" in tables
+    has_milestone_3 = "entity_key" in audit_columns and "flag_evaluation_stats" in tables
+    has_auth = "users" in tables
 
-    # A database created by create_all *after* Milestone 3 already has
-    # everything, so it is stamped at head rather than migrated onto itself.
-    return "head" if milestone_3_applied else LEGACY_REVISION
+    if has_milestone_3 and has_auth:
+        # Nothing left to apply — a create_all database built from today's models.
+        return "head"
+    if has_milestone_3:
+        # Milestone 3 tables but no users table: stamp at 0002 so the auth
+        # migration still runs. Stamping "head" here would skip it and leave
+        # an installation nobody can sign in to.
+        return "0002"
+    return LEGACY_REVISION
 
 
 def main() -> int:

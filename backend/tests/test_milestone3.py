@@ -6,6 +6,9 @@ from urllib.parse import quote
 from app import analytics, cleanup, models
 from app.audit import diff_states, summarize_diff
 
+# The account the authenticated `client` fixture signs in as.
+ADMIN = "admin@example.com"
+
 
 def _seed(client):
     client.post("/environments", json={"key": "staging", "name": "Staging"})
@@ -19,7 +22,6 @@ def _seed(client):
             "description": "Express checkout",
             "owner_team": "growth",
         },
-        headers={"X-Actor": "alice@example.com"},
     )
 
 
@@ -51,13 +53,12 @@ def test_audit_records_actor_and_diff(client):
     client.put(
         "/flags/new-checkout-flow",
         json={"enabled": False, "description": "Paused for the holidays"},
-        headers={"X-Actor": "bob@example.com"},
     )
 
     entries = client.get("/audit-log?entity_key=new-checkout-flow").json()
     update = next(entry for entry in entries if entry["action"] == "updated")
 
-    assert update["actor"] == "bob@example.com"
+    assert update["actor"] == ADMIN
     assert update["entity_key"] == "new-checkout-flow"
     assert update["diff"]["enabled"] == {"before": True, "after": False}
     assert update["diff"]["description"]["after"] == "Paused for the holidays"
@@ -67,7 +68,7 @@ def test_audit_records_actor_and_diff(client):
     assert update["after_state"]["enabled"] is False
 
     create = next(entry for entry in entries if entry["action"] == "created")
-    assert create["actor"] == "alice@example.com"
+    assert create["actor"] == ADMIN
 
 
 def test_audit_records_targeting_rule_changes_with_a_diff(client):
@@ -75,42 +76,46 @@ def test_audit_records_targeting_rule_changes_with_a_diff(client):
     client.put(
         "/flags/new-checkout-flow/targeting/staging",
         json={"user_ids": ["alice@example.com"], "percentage": 25},
-        headers={"X-Actor": "carol@example.com"},
     )
     client.put(
         "/flags/new-checkout-flow/targeting/staging",
         json={"user_ids": ["alice@example.com", "bob@example.com"], "percentage": 60},
-        headers={"X-Actor": "carol@example.com"},
     )
 
     entries = client.get("/audit-log?entity_type=targeting_rule").json()
     latest = entries[0]
 
-    assert latest["actor"] == "carol@example.com"
+    assert latest["actor"] == ADMIN
     assert latest["environment_key"] == "staging"
     assert latest["diff"]["percentage"] == {"before": 25.0, "after": 60.0}
     assert latest["diff"]["user_ids"]["after"] == ["alice@example.com", "bob@example.com"]
 
 
-def test_audit_defaults_to_system_when_no_actor_is_supplied(client):
-    client.post("/environments", json={"key": "staging", "name": "Staging"})
+def test_audit_actor_comes_from_the_token_not_a_header(client):
+    """The actor can't be forged: a spoofed X-Actor header is ignored."""
+    client.post(
+        "/environments",
+        json={"key": "staging", "name": "Staging"},
+        headers={"X-Actor": "someone-else@evil.example"},
+    )
+
     entries = client.get("/audit-log").json()
-    assert entries[0]["actor"] == "system"
+    assert entries[0]["actor"] == ADMIN
 
 
 def test_audit_filters(client):
     _seed(client)
     client.put(
-        "/flags/new-checkout-flow", json={"enabled": False}, headers={"X-Actor": "bob@example.com"}
+        "/flags/new-checkout-flow", json={"enabled": False}
     )
     client.put(
         "/flags/new-checkout-flow/environments/production",
         json={"enabled": True},
-        headers={"X-Actor": "dana@example.com"},
     )
 
-    by_actor = client.get("/audit-log?actor=bob").json()
-    assert by_actor and all("bob" in entry["actor"] for entry in by_actor)
+    by_actor = client.get(f"/audit-log?actor={ADMIN}").json()
+    assert by_actor and all(entry["actor"] == ADMIN for entry in by_actor)
+    assert client.get("/audit-log?actor=nobody-by-this-name").json() == []
 
     by_action = client.get("/audit-log?action=disabled").json()
     assert by_action and all(entry["action"] == "disabled" for entry in by_action)
@@ -127,7 +132,7 @@ def test_audit_filters(client):
     assert client.get("/audit-log?environment_key=nope").json() == []
 
     actors = client.get("/audit-log/actors").json()
-    assert "bob@example.com" in actors and "dana@example.com" in actors
+    assert ADMIN in actors
 
 
 def test_audit_date_range_filter(client):
@@ -359,10 +364,9 @@ def test_marking_a_suggestion_reviewed_removes_it(client, db_session):
     review = client.post(
         "/cleanup/new-checkout-flow/review",
         json={"note": "Ticket PLAT-421 raised to remove the branch"},
-        headers={"X-Actor": "erin@example.com"},
     )
     assert review.status_code == 200
-    assert review.json()["reviewed_by"] == "erin@example.com"
+    assert review.json()["reviewed_by"] == ADMIN
 
     assert client.get("/cleanup/suggestions?stale_days=30").json()["suggestions"] == []
 
@@ -371,7 +375,7 @@ def test_marking_a_suggestion_reviewed_removes_it(client, db_session):
         "/cleanup/suggestions?stale_days=30&include_reviewed=true"
     ).json()["suggestions"]
     assert included[0]["reviewed"] is True
-    assert included[0]["reviewed_by"] == "erin@example.com"
+    assert included[0]["reviewed_by"] == ADMIN
 
     # And a review can be undone.
     assert client.delete("/cleanup/new-checkout-flow/review").status_code == 204
@@ -412,19 +416,16 @@ def test_full_path_create_target_evaluate_cache_audit_analytics(client, db_sessi
     client.post(
         "/flags",
         json={"key": "checkout-v2", "type": "boolean", "default_value": False},
-        headers={"X-Actor": "alice@example.com"},
     )
 
     # 2. Configure targeting
     client.put(
         "/environments/staging/user-groups",
         json={"group_key": "beta_users", "user_ids": ["carol@example.com"]},
-        headers={"X-Actor": "alice@example.com"},
     )
     client.put(
         "/flags/checkout-v2/targeting/staging",
         json={"group_keys": ["beta_users"], "percentage": 0},
-        headers={"X-Actor": "alice@example.com"},
     )
 
     # 3. Evaluate
@@ -454,7 +455,7 @@ def test_full_path_create_target_evaluate_cache_audit_analytics(client, db_sessi
     # 5. Audit — the whole story is on the record, attributed
     entries = client.get("/audit-log?entity_key=checkout-v2").json()
     assert {entry["action"] for entry in entries} >= {"created", "updated"}
-    assert all(entry["actor"] == "alice@example.com" for entry in entries)
+    assert all(entry["actor"] == ADMIN for entry in entries)
 
     # 6. Analytics — cached evaluations still count as usage
     series = client.get("/flags/checkout-v2/analytics?days=7").json()
@@ -470,7 +471,6 @@ def test_full_path_create_target_evaluate_cache_audit_analytics(client, db_sessi
     client.put(
         "/flags/checkout-v2/targeting/staging",
         json={"group_keys": []},
-        headers={"X-Actor": "bob@example.com"},
     )
     third = client.post(
         "/evaluate",
@@ -484,5 +484,5 @@ def test_full_path_create_target_evaluate_cache_audit_analytics(client, db_sessi
     assert third["value"] is False
 
     latest_audit = client.get("/audit-log?entity_key=checkout-v2").json()[0]
-    assert latest_audit["actor"] == "bob@example.com"
+    assert latest_audit["actor"] == ADMIN
     assert latest_audit["diff"]["group_keys"] == {"before": ["beta_users"], "after": []}

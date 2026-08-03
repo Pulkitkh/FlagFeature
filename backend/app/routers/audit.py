@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 from app import audit, crud, models, schemas
 from app.database import get_db
+from app.deps import get_current_user
 
-router = APIRouter(prefix="/audit-log", tags=["audit"])
+router = APIRouter(prefix="/audit-log", tags=["audit"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("", response_model=list[schemas.AuditLogOut])

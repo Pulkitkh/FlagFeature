@@ -28,6 +28,36 @@ class FlagType(str, enum.Enum):
     number = "number"
 
 
+class UserRole(str, enum.Enum):
+    """Two roles, because that's the split that actually matters here.
+
+    admin  — can change flags, targeting, environments and users.
+    viewer — can see everything, including the audit log and analytics, but
+             cannot change anything. Useful for support and stakeholders.
+    """
+
+    admin = "admin"
+    viewer = "viewer"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    name = Column(String(100), nullable=False, default="")
+    # bcrypt hash. The plaintext password is never stored or logged.
+    password_hash = Column(String(255), nullable=False)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.viewer)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == UserRole.admin
+
+
 class Environment(Base):
     __tablename__ = "environments"
 

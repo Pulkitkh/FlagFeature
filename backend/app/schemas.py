@@ -3,7 +3,8 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import FlagType
+from app.models import FlagType, UserRole
+from app.security import MIN_PASSWORD_LENGTH
 
 # ---------- Environment ----------
 
@@ -285,3 +286,52 @@ class SnapshotOut(BaseModel):
         default_factory=dict,
         description="group_key -> user ids, so the client can resolve group rules offline",
     )
+
+
+# ---------- Authentication ----------
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255, examples=["admin@flagforge.local"])
+    password: str = Field(..., min_length=1, max_length=200)
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    name: str
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserOut
+
+
+class UserCreate(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(
+        ..., min_length=MIN_PASSWORD_LENGTH, max_length=72,
+        description="At least 8 characters. Stored as a bcrypt hash.",
+    )
+    name: Optional[str] = ""
+    role: UserRole = UserRole.viewer
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = Field(default=None, min_length=MIN_PASSWORD_LENGTH, max_length=72)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(..., min_length=1, max_length=200)
+    new_password: str = Field(..., min_length=MIN_PASSWORD_LENGTH, max_length=72)

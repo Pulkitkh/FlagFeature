@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { AlertCircle, Eye, EyeOff, Flag, Layers, LogIn, Percent, ShieldCheck } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { api } from '../api/client'
+import { Button, Card, Field, Input } from '../components/ui'
+
+const HIGHLIGHTS = [
+  { icon: Percent, title: 'Gradual rollouts', copy: 'Ship to 1%, then 50%, then everyone.' },
+  { icon: Layers, title: 'Per-environment control', copy: 'On in staging, off in production.' },
+  { icon: ShieldCheck, title: 'Full audit trail', copy: 'Every change, attributed and diffed.' },
+]
+
+export default function LoginPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { signIn, isAuthenticated } = useAuth()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [apiReachable, setApiReachable] = useState(null)
+
+  // Send an already-signed-in user where they were headed.
+  const destination = location.state?.from?.pathname || '/flags'
+  useEffect(() => {
+    if (isAuthenticated) navigate(destination, { replace: true })
+  }, [isAuthenticated, destination, navigate])
+
+  // Distinguishes "wrong password" from "the backend isn't running", which is
+  // the more likely problem on a fresh checkout.
+  useEffect(() => {
+    api
+      .health()
+      .then(() => setApiReachable(true))
+      .catch(() => setApiReachable(false))
+  }, [])
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    try {
+      await signIn(email.trim(), password)
+      navigate(destination, { replace: true })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen w-full">
+      {/* Left: the pitch. Hidden on small screens, where the form is all that matters. */}
+      <aside className="hidden w-1/2 flex-col justify-between border-r border-border bg-surface p-12 lg:flex">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white">
+            <Flag className="h-4 w-4" strokeWidth={2.5} />
+            <span className="signal-dot signal-dot--live absolute -right-0.5 -top-0.5 bg-good ring-2 ring-surfaceMuted" />
+          </span>
+          <span>
+            <span className="block font-display text-[15px] font-semibold leading-tight text-ink">
+              FlagForge
+            </span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+              Release console
+            </span>
+          </span>
+        </div>
+
+        <div className="max-w-md">
+          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight text-ink">
+            Ship features without shipping a deploy.
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Create flags, target real users and groups, roll out gradually, and turn anything off
+            the moment it misbehaves.
+          </p>
+
+          <ul className="mt-8 space-y-5">
+            {HIGHLIGHTS.map(({ icon: Icon, title, copy }) => (
+              <li key={title} className="flex gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-accent">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-ink">{title}</span>
+                  <span className="block text-xs text-muted">{copy}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="text-xs text-muted">
+          Evaluation runs on <code className="font-mono text-accentDark">POST /evaluate</code>, cached
+          in Redis.
+        </p>
+      </aside>
+
+      {/* Right: the form. */}
+      <main className="flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-white">
+              <Flag className="h-5 w-5" strokeWidth={2.5} />
+            </span>
+          </div>
+
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+            Sign in to FlagForge
+          </h1>
+          <p className="mt-1.5 text-sm text-muted">
+            Every change you make is recorded against your account.
+          </p>
+
+          {apiReachable === false && (
+            <Card className="mt-6 border-bad/25 bg-badSoft">
+              <p className="flex items-start gap-2 text-sm text-bad">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Can't reach the API. Start the backend, then try again — signing in won't work
+                  until it responds.
+                </span>
+              </p>
+            </Card>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <Field label="Email">
+              <Input
+                type="email"
+                autoComplete="username"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@flagforge.local"
+              />
+            </Field>
+
+            <Field label="Password">
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((shown) => !shown)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-hoverBg hover:text-ink"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </Field>
+
+            {error && (
+              <p className="rounded-lg border border-bad/25 bg-badSoft px-3 py-2.5 text-sm text-bad">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" icon={LogIn} loading={submitting} className="w-full">
+              Sign in
+            </Button>
+          </form>
+
+          <p className="mt-6 rounded-lg border border-border bg-surfaceMuted px-3.5 py-3 text-xs leading-relaxed text-muted">
+            First run? A default admin is created on startup —{' '}
+            <span className="font-mono text-ink">admin@flagforge.local</span> /{' '}
+            <span className="font-mono text-ink">admin12345</span>. Change the password once you're
+            in.
+          </p>
+        </div>
+      </main>
+    </div>
+  )
+}

@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.database import get_db
-from app.deps import get_actor
+from app.deps import get_actor, get_current_user, require_admin
 
-router = APIRouter(prefix="/flags", tags=["flags"])
+# Reading a flag needs a login; changing one needs an admin. Applied at the
+# router so a new endpoint is protected by default rather than by memory.
+router = APIRouter(
+    prefix="/flags", tags=["flags"], dependencies=[Depends(get_current_user)]
+)
 
 # What a hand-written `value` is allowed to be, per flag type.
 _VALUE_TYPES = {
@@ -50,7 +54,7 @@ def _validate_value(flag: models.Flag, value) -> None:
     )
 
 
-@router.post("", response_model=schemas.FlagOut, status_code=201)
+@router.post("", response_model=schemas.FlagOut, status_code=201, dependencies=[Depends(require_admin)])
 def create_flag(
     payload: schemas.FlagCreate,
     db: Session = Depends(get_db),
@@ -73,7 +77,7 @@ def get_flag(key: str, db: Session = Depends(get_db)):
     return _get_flag_or_404(db, key)
 
 
-@router.put("/{key}", response_model=schemas.FlagOut)
+@router.put("/{key}", response_model=schemas.FlagOut, dependencies=[Depends(require_admin)])
 def update_flag(
     key: str,
     payload: schemas.FlagUpdate,
@@ -84,7 +88,7 @@ def update_flag(
     return crud.update_flag(db, flag, payload, actor=actor)
 
 
-@router.delete("/{key}", status_code=204)
+@router.delete("/{key}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_flag(
     key: str,
     db: Session = Depends(get_db),
@@ -100,7 +104,7 @@ def get_flag_versions(key: str, db: Session = Depends(get_db)):
     return crud.list_flag_versions(db, flag.id)
 
 
-@router.put("/{key}/environments/{env_key}", response_model=schemas.EnvironmentOverrideOut)
+@router.put("/{key}/environments/{env_key}", response_model=schemas.EnvironmentOverrideOut, dependencies=[Depends(require_admin)])
 def set_environment_override(
     key: str,
     env_key: str,
@@ -122,7 +126,7 @@ def get_targeting_rules(key: str, env_key: str, db: Session = Depends(get_db)):
     return crud.get_targeting_rules(db, flag, environment)
 
 
-@router.put("/{key}/targeting/{env_key}", response_model=schemas.TargetingRulesOut)
+@router.put("/{key}/targeting/{env_key}", response_model=schemas.TargetingRulesOut, dependencies=[Depends(require_admin)])
 def set_targeting_rules(
     key: str,
     env_key: str,

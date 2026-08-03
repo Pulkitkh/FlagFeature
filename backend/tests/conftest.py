@@ -79,11 +79,62 @@ def db_session():
 
 
 @pytest.fixture()
-def client(db_session):
-    """TestClient wired to the same in-memory database as `db_session`."""
+def admin_user(db_session):
+    """The account every authenticated fixture signs in as."""
+    from app import crud, models
+
+    return crud.create_user(
+        db_session,
+        email="admin@example.com",
+        password="admin-password",
+        name="Test Admin",
+        role=models.UserRole.admin,
+    )
+
+
+@pytest.fixture()
+def viewer_user(db_session):
+    from app import crud, models
+
+    return crud.create_user(
+        db_session,
+        email="viewer@example.com",
+        password="viewer-password",
+        name="Test Viewer",
+        role=models.UserRole.viewer,
+    )
+
+
+@pytest.fixture()
+def anon_client(db_session):
+    """TestClient with no credentials — for testing that endpoints are protected."""
     app.dependency_overrides[get_db] = lambda: db_session
     try:
         with TestClient(app) as test_client:
             yield test_client
     finally:
         app.dependency_overrides.clear()
+
+
+def _authenticated_client(db_session, email: str, password: str):
+    app.dependency_overrides[get_db] = lambda: db_session
+    test_client = TestClient(app)
+    with test_client:
+        response = test_client.post("/auth/login", json={"email": email, "password": password})
+        assert response.status_code == 200, response.text
+        # Set on the client so every later request in the test is signed in.
+        test_client.headers["Authorization"] = f"Bearer {response.json()['access_token']}"
+        yield test_client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def client(db_session, admin_user):
+    """Signed in as an admin. The default for tests that exercise the API."""
+    yield from _authenticated_client(db_session, "admin@example.com", "admin-password")
+
+
+@pytest.fixture()
+def viewer_client(db_session, viewer_user):
+    """Signed in as a viewer — can read everything, change nothing."""
+    yield from _authenticated_client(db_session, "viewer@example.com", "viewer-password")

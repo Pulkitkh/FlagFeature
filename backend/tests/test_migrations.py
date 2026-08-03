@@ -192,6 +192,12 @@ def test_adopts_a_hybrid_database(tmp_path):
         engine.dispose()
 
 
+def _head_revision() -> str:
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(_alembic_config("sqlite://")).get_current_head()
+
+
 def test_current_create_all_database_is_stamped_not_migrated(tmp_path):
     """A database create_all built from today's models is already at head."""
     url = f"sqlite:///{tmp_path / 'current.db'}"
@@ -209,7 +215,36 @@ def test_current_create_all_database_is_stamped_not_migrated(tmp_path):
     try:
         with engine.connect() as connection:
             revision = MigrationContext.configure(connection).get_current_revision()
-        assert revision == "0002"
+        assert revision == _head_revision()
+    finally:
+        engine.dispose()
+
+
+def test_milestone_3_database_without_users_still_gets_the_auth_migration(tmp_path):
+    """A create_all database from before auth has the Milestone 3 tables but no
+    users table. Stamping it at head would skip the auth migration and leave an
+    installation nobody can sign in to."""
+    url, engine = _legacy_database(tmp_path, "pre-auth.db")
+
+    # Everything Milestone 3 added, but no users table.
+    Base.metadata.create_all(
+        bind=engine,
+        tables=[models.FlagEvaluationStat.__table__, models.FlagCleanupReview.__table__],
+    )
+    with engine.begin() as connection:
+        for column in ("entity_key VARCHAR(100)", "before_state JSON", "after_state JSON", "diff JSON"):
+            connection.execute(text(f"ALTER TABLE audit_log ADD COLUMN {column}"))
+
+    inspector = inspect(engine)
+    assert "users" not in inspector.get_table_names()
+    assert detect_existing_revision(engine) == "0002", "must not be stamped at head"
+    engine.dispose()
+
+    _run_migrate(url)
+
+    engine = create_engine(url)
+    try:
+        assert "users" in inspect(engine).get_table_names(), "auth migration was skipped"
     finally:
         engine.dispose()
 

@@ -19,6 +19,23 @@ the data appear.
 
 ---
 
+## Signing in (≈1 min)
+
+**0. The login screen.** Open the dashboard and you land on it — nothing is
+reachable without an account. Sign in as `admin@flagforge.local` /
+`admin12345`.
+
+Say: *"Everything you're about to see is attributed. The audit log's actor
+comes from the signed-in user's token, not a header — it can't be forged."*
+
+Worth showing: open the user menu, point at the **Admin** badge, then mention
+there's a **viewer** role that can read everything and change nothing. If
+you've got a minute spare, sign in as a viewer in a private window — the
+Create flag button and the Accounts page simply aren't there, and the API
+returns 403 even if you go around the UI.
+
+---
+
 ## Milestone 1 — foundation (≈3 min)
 
 **1. The shell.** Point at the sidebar (Flags, Environments, User groups, Audit
@@ -150,10 +167,12 @@ answers from the last snapshot. `curl localhost:9000/health` shows
 **17. Tests.**
 
 ```bash
-cd backend && pytest -q     # 72 passed
+cd backend && pytest -q     # 120 passed
 ```
 
-Call out three:
+Call out four:
+- `test_viewer_cannot_change_anything` — every write path is tried as a viewer
+  and every one returns 403.
 - `test_local_evaluation_matches_the_server` — the SDK reimplements the rules,
   so a contract test runs a matrix of flags × contexts through both paths and
   asserts value *and* reason match.
@@ -184,9 +203,14 @@ the analytics counter are both best-effort and fall through to the database.
 regardless of the percentage. Widening a rollout only ever adds users — there's
 a test for exactly that.
 
-**"Who can change flags?"** There's no auth layer yet. The actor comes from an
-`X-Actor` header and defaults to `system`; `app/deps.py` is the single place
-that changes when authentication is added.
+**"Who can change flags?"** Admins. Viewers can read everything and change
+nothing, enforced server-side. The audit actor comes from the verified token,
+so it can't be spoofed.
+
+**"What are the limits of the auth?"** Be upfront: tokens can't be revoked
+individually (deactivating an account blocks it on the next request), there are
+no refresh tokens, login isn't rate-limited, and the token lives in
+`localStorage`. All reasonable for an internal tool, all listed in the README.
 
 **"How fresh is the middleware's data?"** Up to `refresh_interval` seconds
 (default 30) — the deliberate cost of not making a network call per check. For
