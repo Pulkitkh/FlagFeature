@@ -36,6 +36,14 @@ class FakeRedis:
     def set(self, key, value, ex=None):
         self.store[key] = value
 
+    def incr(self, key, amount=1):
+        self.store[key] = str(int(self.store.get(key, 0)) + amount)
+        return int(self.store[key])
+
+    def expire(self, key, seconds):
+        # TTLs are irrelevant within a test; accepted so callers behave normally.
+        return True
+
     def delete(self, key):
         self.store.pop(key, None)
 

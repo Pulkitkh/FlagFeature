@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+// Recorded against every change in the audit log. Without an auth layer the
+// dashboard declares who it is; the backend falls back to "system".
+export const ACTOR = 'dashboard'
+
 export class ApiError extends Error {
   constructor(message, status) {
     super(message)
@@ -12,12 +16,12 @@ async function request(path, options = {}) {
   let res
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Actor': ACTOR },
       ...options,
     })
   } catch {
-    // fetch only rejects on a network-level failure, which is worth naming
-    // explicitly — "Failed to fetch" tells a user nothing.
+    // fetch only rejects on a network-level failure, which deserves a clearer
+    // message than "Failed to fetch".
     throw new ApiError(`Can't reach the API at ${API_BASE_URL}. Is the backend running?`, 0)
   }
 
@@ -34,7 +38,7 @@ async function request(path, options = {}) {
           .join(', ')
       }
     } catch {
-      // Response had no JSON body; the status text stands.
+      // response had no JSON body
     }
     throw new ApiError(detail, res.status)
   }
@@ -43,52 +47,90 @@ async function request(path, options = {}) {
   return res.json()
 }
 
-const encode = encodeURIComponent
+function queryString(params) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+    search.set(key, value)
+  })
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
 
 export const api = {
   health: () => request('/health'),
-  getOverview: (environmentKey) =>
-    request(`/overview${environmentKey ? `?environment_key=${encode(environmentKey)}` : ''}`),
 
   listEnvironments: () => request('/environments'),
   createEnvironment: (payload) =>
     request('/environments', { method: 'POST', body: JSON.stringify(payload) }),
   updateEnvironment: (key, payload) =>
-    request(`/environments/${encode(key)}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  listEnvironmentGroups: (key) => request(`/environments/${encode(key)}/groups`),
-  listUserGroups: (key) => request(`/environments/${encode(key)}/user-groups`),
+    request(`/environments/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  listEnvironmentGroups: (key) => request(`/environments/${encodeURIComponent(key)}/groups`),
+  listUserGroups: (key) => request(`/environments/${encodeURIComponent(key)}/user-groups`),
   upsertUserGroup: (key, payload) =>
-    request(`/environments/${encode(key)}/user-groups`, {
+    request(`/environments/${encodeURIComponent(key)}/user-groups`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
   deleteUserGroupMember: (key, groupKey, userId) =>
-    request(`/environments/${encode(key)}/user-groups/${encode(groupKey)}/${encode(userId)}`, {
-      method: 'DELETE',
-    }),
+    request(
+      `/environments/${encodeURIComponent(key)}/user-groups/${encodeURIComponent(groupKey)}/${encodeURIComponent(userId)}`,
+      { method: 'DELETE' }
+    ),
 
   listFlags: () => request('/flags'),
-  getFlag: (key) => request(`/flags/${encode(key)}`),
+  getFlag: (key) => request(`/flags/${encodeURIComponent(key)}`),
   createFlag: (payload) => request('/flags', { method: 'POST', body: JSON.stringify(payload) }),
   updateFlag: (key, payload) =>
-    request(`/flags/${encode(key)}`, { method: 'PUT', body: JSON.stringify(payload) }),
-  deleteFlag: (key) => request(`/flags/${encode(key)}`, { method: 'DELETE' }),
-  getFlagVersions: (key) => request(`/flags/${encode(key)}/versions`),
+    request(`/flags/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteFlag: (key) => request(`/flags/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+  getFlagVersions: (key) => request(`/flags/${encodeURIComponent(key)}/versions`),
 
   setEnvironmentOverride: (key, envKey, payload) =>
-    request(`/flags/${encode(key)}/environments/${encode(envKey)}`, {
+    request(`/flags/${encodeURIComponent(key)}/environments/${encodeURIComponent(envKey)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
   getTargetingRules: (key, envKey) =>
-    request(`/flags/${encode(key)}/targeting/${encode(envKey)}`),
+    request(`/flags/${encodeURIComponent(key)}/targeting/${encodeURIComponent(envKey)}`),
   setTargetingRules: (key, envKey, payload) =>
-    request(`/flags/${encode(key)}/targeting/${encode(envKey)}`, {
+    request(`/flags/${encodeURIComponent(key)}/targeting/${encodeURIComponent(envKey)}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
 
   evaluateFlag: (payload) => request('/evaluate', { method: 'POST', body: JSON.stringify(payload) }),
 
-  getAuditLog: (limit = 100) => request(`/audit-log?limit=${limit}`),
+  // URLSearchParams encodes the "+" in an ISO offset, which would otherwise
+  // arrive as a space and fail validation.
+  getAuditLog: (filters = {}) => request(`/audit-log${queryString({ limit: 100, ...filters })}`),
+  getAuditActors: () => request('/audit-log/actors'),
+
+  getFlagAnalytics: (key, { days = 7, environmentKey } = {}) =>
+    request(
+      `/flags/${encodeURIComponent(key)}/analytics${queryString({
+        days,
+        environment_key: environmentKey,
+      })}`
+    ),
+
+  getCleanupSuggestions: ({ staleDays = 30, includeReviewed = false } = {}) =>
+    request(
+      `/cleanup/suggestions${queryString({
+        stale_days: staleDays,
+        include_reviewed: includeReviewed ? 'true' : '',
+      })}`
+    ),
+  reviewFlagCleanup: (key, note = '') =>
+    request(`/cleanup/${encodeURIComponent(key)}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  unreviewFlagCleanup: (key) =>
+    request(`/cleanup/${encodeURIComponent(key)}/review`, { method: 'DELETE' }),
+
+  getSnapshot: (envKey) => request(`/snapshot/${encodeURIComponent(envKey)}`),
 }

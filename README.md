@@ -1,10 +1,12 @@
 # FlagForge — Feature Flag Management Platform
 
 A feature flag platform: create flags, target them by user/group/percentage,
-flip them per environment without a deploy, and see every change in an audit
-trail. This repo covers **Milestones 1 and 2** — schema, evaluation engine
-(with caching), and the full targeting/rollout UI, backend + frontend + live
-API.
+flip them per environment without a deploy, see every change in an audit trail
+with a JSON diff, track how often each flag is actually evaluated, and get told
+which flags are safe to delete. Ships with a Python middleware client so real
+applications can consume it without an HTTP call per flag check.
+
+All three milestones are complete.
 
 ## Stack
 
@@ -18,6 +20,12 @@ API.
 
 ```
 flagforge/
+├── sdk/                         # the Python middleware applications install
+│   └── flagforge/
+│       ├── client.py            # in-memory cache + background refresh
+│       ├── evaluator.py         # local evaluation, same rules as the server
+│       └── integrations/        # FastAPI and Django glue
+├── examples/                    # runnable FastAPI and Django demo apps
 ├── backend/
 │   ├── app/
 │   │   ├── main.py            # FastAPI app, CORS, /health
@@ -33,10 +41,15 @@ flagforge/
 │   │       ├── environments.py
 │   │       ├── flags.py
 │   │       └── evaluation.py
+│   ├── alembic/               # versioned schema migrations
+│   ├── scripts/
+│   │   ├── flush_analytics.py # Redis counters -> Postgres (run daily)
+│   │   └── load_test.py       # latency of /evaluate, split by cache hit/miss
 │   ├── tests/
 │   │   ├── test_evaluation.py # evaluation-engine unit tests
-│   │   └── test_api.py        # end-to-end HTTP tests: CRUD, errors,
-│   │                          # targeting, rollout, caching, overview
+│   │   ├── test_api.py        # HTTP tests: CRUD, errors, targeting, caching
+│   │   ├── test_milestone3.py # audit diffs, analytics, cleanup, full path
+│   │   └── test_middleware.py # SDK behaviour + SDK-vs-server contract
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
@@ -61,7 +74,9 @@ flagforge/
 | `flag_versions` | snapshot of a flag on every create/update (basic version history) |
 | `targeting_rules` | per-environment rules: `user_targeting`, `group_targeting`, `percentage_rollout`, and `environment_override` all share this table |
 | `user_group_memberships` | which users belong to which group, per environment |
-| `audit_log` | every create / update / delete / toggle |
+| `audit_log` | every change, with actor, before/after state and a JSON diff |
+| `flag_evaluation_stats` | hourly evaluation counts, flushed out of Redis |
+| `flag_cleanup_reviews` | stale-flag suggestions somebody has signed off |
 
 Indexes on `flags.key` and the `environment_id` foreign keys keep the
 lookups that happen on every evaluation call fast.
@@ -100,36 +115,103 @@ Test coverage (33 tests, `pytest -q`):
   invalidation after every kind of change, per-user cache isolation, the audit
   log, and the overview aggregates.
 
-## Dashboard
+## Dashboard pages
 
-The console opens on a dashboard that reads from `GET /overview`:
+| Page | What it does |
+|---|---|
+| **Flags** | Searchable/filterable flag table, create form, and the cleanup-suggestions panel |
+| **Flag detail** | Full configuration, per-environment resolution, targeting rule panel (user / group / percentage), evaluation test panel, evaluation-volume chart, and version history |
+| **Environments** | All environments, plus how a chosen flag resolves in each one |
+| **User groups** | Group memberships per environment, targetable from any flag |
+| **Audit log** | Filterable table of every change, with a JSON diff modal |
 
-- **Stat tiles** — flag count and enabled/disabled split, environments, active
-  rules in the selected environment, and changes today.
-- **Configuration activity** — an area chart of every flag, rule and override
-  change over the last 14 days.
-- **Flag health** — a meter for the enabled share, a per-type breakdown, and a
-  bar chart of the rule mix in the selected environment.
-- **Environment coverage** — how many flags carry a targeting rule or override
-  in each environment, with average rollout percentages.
+The environment switcher in the top bar drives every page: targeting rules,
+group memberships, the analytics chart's environment scope, and the audit log's
+optional environment filter.
 
-Chart colours are a validated two-slot palette (blue, orange) that clears the
-colourblind-separation and contrast checks against both the light and dark
-chart surfaces. Every chart is single-series with direct labels, so identity
-never rests on colour alone.
+Chart colours use a single validated hue (blue) against the light chart
+surface. Every chart is single-series, so identity never rests on colour.
 
-## Theming and accessibility
+## Audit log (Milestone 3)
 
-- Light and dark themes, each a deliberately chosen set of tokens rather than
-  an inverted copy. The choice is stored and applied before first paint, so a
-  reload never flashes the wrong theme.
-- Full keyboard support: the environment switcher and every dropdown handle
-  arrows, Home/End, Enter and Escape; dialogs trap Escape, lock body scroll and
-  move focus inside; table rows are reachable and activatable by keyboard.
-- Visible focus rings throughout, `aria-*` on switches, meters and listboxes,
-  and a `prefers-reduced-motion` block that disables all animation.
-- Responsive from 320px up: the sidebar becomes a drawer below `lg`, tables
-  scroll horizontally rather than forcing the page to.
+Every create, update, enable, disable, delete, targeting change and environment
+override writes a row carrying:
+
+- **actor** — taken from the `X-Actor` request header. The dashboard sends
+  `dashboard`; scripts send their own name; anything that sends nothing is
+  recorded as `system`. When real authentication lands, `app/deps.py` is the
+  only place that changes.
+- **before / after state** and a **field-level diff** of just what moved.
+- the **environment** and the **entity key** (the flag key, not a database id),
+  so the log can be filtered by the thing people actually name.
+
+Flipping only the kill switch is recorded as `enabled` / `disabled` rather than
+a vague `updated`.
+
+`GET /audit-log` filters by `actor`, `entity_key`, `entity_type`, `action`,
+`environment_key`, `start` and `end`. The dashboard exposes all of them and a
+"view diff" modal that shows the before/after per field plus the raw JSON.
+
+## Evaluation analytics (Milestone 3)
+
+Every successful `/evaluate` bumps a Redis counter keyed by flag + environment
++ hour. Redis absorbs the write volume (one `INCR`, no database round trip on
+the hot path) and a daily job moves the counters into Postgres:
+
+```bash
+cd backend
+python -m scripts.flush_analytics          # run from cron / a scheduled job
+python -m scripts.flush_analytics --keep-counters   # dry run
+```
+
+Reads merge both sources, so today's bar is live rather than stuck at zero
+until the nightly flush. `GET /flags/{key}/analytics?days=7|30` powers the chart
+on the flag detail page, optionally scoped to one environment.
+
+Analytics never breaks evaluation: if Redis is unavailable the counter is
+skipped and the evaluation still returns.
+
+## Cleanup suggestions (Milestone 3)
+
+A flag that has been at 100% everywhere for months isn't a flag any more — it's
+a branch nobody deleted. `GET /cleanup/suggestions?stale_days=30` lists flags
+that resolve **the same way for everyone in every environment** and haven't
+changed in that long:
+
+- **fully rolled out** — 100% rollout or forced on, in every environment
+- **fully off** — globally disabled, or forced off everywhere
+
+Anything still selective (a user whitelist, a targeted group, a rollout between
+1% and 99%) is excluded: it's still doing real work. Each suggestion reports how
+long it has been stale and how many evaluations it has served, and can be marked
+reviewed so it drops off the list.
+
+## Python middleware (Milestone 3)
+
+Applications consume FlagForge through the client in [`sdk/`](sdk), which
+caches the environment's whole configuration in memory and evaluates locally:
+
+```python
+from flagforge import FlagForgeClient
+
+flags = FlagForgeClient(api_url="http://localhost:8000", environment="production")
+flags.start()
+
+if flags.is_enabled("new-checkout-flow", user_id="alice@example.com"):
+    ...
+```
+
+Measured locally: **2.6µs per evaluation vs 4.9ms via `POST /evaluate`**. It
+keeps serving the last snapshot when the API is unreachable, and the caller's
+default when it has never reached it at all.
+
+Because that means the rules are implemented twice, a contract test
+(`test_middleware.py::test_local_evaluation_matches_the_server`) runs a matrix
+of flags × user contexts through both the SDK and the API and asserts the value
+*and* the reason match.
+
+See [`sdk/README.md`](sdk/README.md) and the runnable FastAPI and Django apps in
+[`examples/`](examples).
 
 ## Running locally
 
@@ -163,6 +245,27 @@ pip install -r requirements.txt
 DATABASE_URL="sqlite:///./flagforge.db" uvicorn app.main:app --reload
 ```
 
+### Migrations
+
+Locally the app creates its tables on startup, which keeps setup to one
+command. In production set `AUTO_CREATE_TABLES=false` and apply migrations
+instead, so schema changes are versioned:
+
+```bash
+cd backend
+alembic upgrade head            # apply everything
+alembic downgrade -1            # step back one revision
+alembic history                 # what exists
+```
+
+A database created by the old `create_all` path can adopt migrations without
+being recreated:
+
+```bash
+alembic stamp 0001              # "you already have the Milestone 1+2 schema"
+alembic upgrade head            # then pick up the Milestone 3 changes
+```
+
 Redis is optional for this option — `/health` will just report it as
 `unavailable`, and evaluation falls back to computing results live instead
 of serving them from cache.
@@ -177,6 +280,21 @@ pytest -q
 
 No Postgres or Redis needed — the suite uses in-memory SQLite and an in-memory
 Redis stand-in.
+
+### Load test
+
+With the API running:
+
+```bash
+cd backend
+python scripts/load_test.py --requests 2000 --concurrency 16
+```
+
+It reports p50/p95/p99 split by cache hit and miss. On a local SQLite setup a
+cached evaluation runs at roughly half the latency of an uncached one; note
+that a cache hit still costs two small queries (the flag and the environment)
+because the cache key is scoped to the flag's `updated_at`, which is what makes
+invalidation safe.
 
 ## API quick reference
 
@@ -193,8 +311,16 @@ Redis stand-in.
 | PUT | `/flags/{key}/environments/{env_key}` | set an environment override |
 | GET/PUT | `/flags/{key}/targeting/{env_key}` | read / set user, group, and percentage targeting rules |
 | POST | `/evaluate` | resolve a flag's value for an environment |
-| GET | `/audit-log` | recent activity |
+| GET | `/audit-log` | activity, filterable by actor / entity_key / entity_type / action / environment_key / start / end |
+| GET | `/audit-log/actors` | distinct actors, for the filter dropdown |
 | GET | `/overview` | dashboard aggregates: totals, rule mix, per-environment coverage, 14-day activity |
+| GET | `/flags/{key}/analytics` | evaluations per day (`days`, optional `environment_key`) |
+| GET | `/cleanup/suggestions` | flags safe to delete (`stale_days`, `include_reviewed`) |
+| POST/DELETE | `/cleanup/{key}/review` | mark a suggestion reviewed / undo it |
+| GET | `/snapshot/{env_key}` | full configuration for one environment — what the middleware polls |
+
+Every mutating endpoint accepts an `X-Actor` header, recorded against the
+change in the audit log.
 
 Interactive docs are auto-generated at `/docs` (Swagger) once the backend is running.
 

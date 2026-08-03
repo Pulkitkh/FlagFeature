@@ -1,78 +1,56 @@
-import { useId } from 'react'
-
 const baseInputClasses =
-  'w-full rounded-lg border border-border bg-surface text-sm text-ink shadow-hairline outline-none transition-all placeholder:text-muted/70 hover:border-borderStrong focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-surfaceMuted disabled:text-muted'
+  'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink shadow-hairline outline-none placeholder:text-muted/70 transition-colors focus:border-accent focus:ring-2 focus:ring-accentSoft'
 
-/**
- * Label + control + hint/error, wired together by id so clicking the label
- * focuses the control and screen readers announce the hint.
- */
-export function Field({ label, hint, error, children, htmlFor }) {
-  const generatedId = useId()
-  const id = htmlFor || generatedId
-
+export function Field({ label, hint, error, children }) {
   return (
-    <div className="min-w-0">
+    <label className="block">
       {label && (
-        <label
-          htmlFor={id}
-          className="mb-1.5 block text-2xs font-semibold uppercase tracking-label text-muted"
-        >
+        <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
           {label}
-        </label>
+        </span>
       )}
-      {typeof children === 'function' ? children(id) : children}
-      {hint && !error && <p className="mt-1.5 text-xs leading-relaxed text-muted">{hint}</p>}
-      {error && <p className="mt-1.5 text-xs text-bad">{error}</p>}
-    </div>
+      {children}
+      {hint && !error && <span className="mt-1 block text-xs text-muted">{hint}</span>}
+      {error && <span className="mt-1 block text-xs text-bad">{error}</span>}
+    </label>
   )
 }
 
 export function Input({ className = '', mono = false, ...props }) {
   return (
-    <input
-      className={`${baseInputClasses} h-10 px-3 ${mono ? 'font-mono' : ''} ${className}`}
-      {...props}
-    />
+    <input className={`${baseInputClasses} ${mono ? 'font-mono' : ''} ${className}`} {...props} />
   )
 }
 
-export function Textarea({ className = '', mono = false, ...props }) {
+export function Textarea({ className = '', ...props }) {
+  return <textarea className={`${baseInputClasses} resize-none ${className}`} {...props} />
+}
+
+export function Select({ className = '', children, ...props }) {
   return (
-    <textarea
-      className={`${baseInputClasses} resize-y px-3 py-2.5 leading-relaxed ${
-        mono ? 'font-mono' : ''
-      } ${className}`}
-      {...props}
-    />
+    <select className={`${baseInputClasses} ${className}`} {...props}>
+      {children}
+    </select>
   )
 }
 
-export function Switch({ checked, onChange, label, description, disabled = false }) {
+export function Switch({ checked, onChange, label }) {
   return (
-    <div className="flex items-start gap-3">
-      <button
-        type="button"
+    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+      <span
         role="switch"
         aria-checked={checked}
-        aria-label={typeof label === 'string' ? label : 'Toggle'}
-        disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          checked ? 'border-accent bg-accent' : 'border-border bg-surfaceSunken'
+        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+          checked ? 'bg-accent' : 'bg-border'
         }`}
       >
         <span
-          className="inline-block h-4 w-4 transform rounded-full bg-white shadow-hairline transition-transform"
-          style={{ transform: checked ? 'translateX(24px)' : 'translateX(4px)' }}
+          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+          style={{ transform: checked ? 'translateX(18px)' : 'translateX(4px)' }}
         />
-      </button>
-      {(label || description) && (
-        <div className="min-w-0">
-          {label && <p className="text-sm font-medium text-ink">{label}</p>}
-          {description && <p className="mt-0.5 text-xs leading-relaxed text-muted">{description}</p>}
-        </div>
-      )}
-    </div>
+      </span>
+      {label}
+    </label>
   )
 }

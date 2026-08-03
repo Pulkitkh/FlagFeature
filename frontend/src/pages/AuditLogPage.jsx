@@ -1,178 +1,290 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, PlusCircle, RefreshCw, ToggleLeft, Trash2 } from 'lucide-react'
-import AppLayout from '../components/AppLayout'
+import { Activity, FileDiff, RotateCcw, Search } from 'lucide-react'
+import Navbar from '../components/Navbar'
+import AuditDiffModal from '../components/AuditDiffModal'
 import { api } from '../api/client'
+import { useEnvironment } from '../context/EnvironmentContext'
 import {
   Badge,
   Button,
   Card,
-  CardHeader,
+  Cell,
   Dropdown,
   EmptyState,
+  Field,
+  Input,
   PageHeader,
+  Row,
+  Table,
   TableSkeleton,
 } from '../components/ui'
 
-const ACTION_META = {
-  created: { tone: 'good', icon: PlusCircle, label: 'created', iconClass: 'text-good' },
-  updated: { tone: 'accent', icon: RefreshCw, label: 'updated', iconClass: 'text-accent' },
-  toggled: { tone: 'warn', icon: ToggleLeft, label: 'toggled', iconClass: 'text-warn' },
-  deleted: { tone: 'bad', icon: Trash2, label: 'deleted', iconClass: 'text-bad' },
+const ACTION_TONE = {
+  created: 'good',
+  updated: 'accent',
+  enabled: 'good',
+  disabled: 'warn',
+  toggled: 'warn',
+  deleted: 'bad',
 }
 
-const FILTER_OPTIONS = [
-  { value: 'all', label: 'All actions' },
+const ACTION_OPTIONS = [
+  { value: '', label: 'All actions' },
   { value: 'created', label: 'Created' },
   { value: 'updated', label: 'Updated' },
+  { value: 'enabled', label: 'Enabled' },
+  { value: 'disabled', label: 'Disabled' },
   { value: 'toggled', label: 'Toggled' },
   { value: 'deleted', label: 'Deleted' },
 ]
 
-function relativeTime(dateStr) {
-  const date = new Date(dateStr)
-  const diffSec = Math.round((Date.now() - date.getTime()) / 1000)
+const ENTITY_OPTIONS = [
+  { value: '', label: 'All types' },
+  { value: 'flag', label: 'Flag' },
+  { value: 'targeting_rule', label: 'Targeting rule' },
+  { value: 'environment_override', label: 'Environment override' },
+  { value: 'user_group_membership', label: 'Group membership' },
+  { value: 'environment', label: 'Environment' },
+]
 
-  if (diffSec < 60) return 'just now'
-  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`
-  if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h ago`
-  if (diffSec < 2592000) return `${Math.round(diffSec / 86400)}d ago`
-  return date.toLocaleDateString()
-}
+const COLUMNS = ['Timestamp', 'Actor', 'Flag / entity', 'Action', 'Change', '']
 
-function summarize(entry) {
-  const details = entry.details || {}
-  const parts = []
-
-  if ('enabled' in details) parts.push(`enabled → ${JSON.stringify(details.enabled)}`)
-  if ('default_value' in details) parts.push(`default → ${JSON.stringify(details.default_value)}`)
-  if (Array.isArray(details.user_ids) && details.user_ids.length)
-    parts.push(`${details.user_ids.length} targeted user(s)`)
-  if (Array.isArray(details.group_keys) && details.group_keys.length)
-    parts.push(`groups: ${details.group_keys.join(', ')}`)
-  if (details.percentage !== undefined && details.percentage !== null)
-    parts.push(`rollout ${details.percentage}%`)
-  if (details.value !== undefined && details.value !== null)
-    parts.push(`value → ${JSON.stringify(details.value)}`)
-
-  return parts.join(' · ')
+const EMPTY_FILTERS = {
+  actor: '',
+  entity_key: '',
+  entity_type: '',
+  action: '',
+  start: '',
+  end: '',
 }
 
 export default function AuditLogPage() {
+  const { selected: selectedEnv, environments } = useEnvironment()
+
   const [entries, setEntries] = useState([])
+  const [actors, setActors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [filter, setFilter] = useState('all')
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  // Off by default so the log reads as a complete history; on, it follows the
+  // environment switcher like every other page.
+  const [scopeToEnvironment, setScopeToEnvironment] = useState(false)
+  const [diffEntry, setDiffEntry] = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
+    const query = { ...filters }
+    // Date inputs give a plain YYYY-MM-DD; make "end" inclusive of that day.
+    if (query.end) query.end = `${query.end}T23:59:59`
+    if (scopeToEnvironment && selectedEnv) query.environment_key = selectedEnv.key
+
     api
-      .getAuditLog()
+      .getAuditLog(query)
       .then((data) => {
         setEntries(data)
         setError(null)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [filters, scopeToEnvironment, selectedEnv])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const visible = useMemo(
-    () => (filter === 'all' ? entries : entries.filter((entry) => entry.action === filter)),
-    [entries, filter]
+  useEffect(() => {
+    api.getAuditActors().then(setActors).catch(() => setActors([]))
+  }, [])
+
+  const actorOptions = useMemo(
+    () => [{ value: '', label: 'All actors' }, ...actors.map((actor) => ({ value: actor, label: actor }))],
+    [actors]
   )
 
+  const filtersActive = useMemo(
+    () => Object.values(filters).some(Boolean) || scopeToEnvironment,
+    [filters, scopeToEnvironment]
+  )
+
+  function setFilter(name, value) {
+    setFilters((current) => ({ ...current, [name]: value }))
+  }
+
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS)
+    setScopeToEnvironment(false)
+  }
+
   return (
-    <AppLayout title="Audit log" breadcrumb="FlagForge">
-      <PageHeader
-        eyebrow="History"
-        title="Audit log"
-        description="Every create, update, delete and environment toggle, newest first — so you can always answer “who changed what, and when?”."
-        action={
-          <>
-            <Dropdown
-              value={filter}
-              onChange={setFilter}
-              options={FILTER_OPTIONS}
-              className="w-40"
-            />
-            <Button variant="secondary" icon={RefreshCw} onClick={load} loading={loading}>
-              Refresh
-            </Button>
-          </>
-        }
-      />
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <Navbar title="Audit Log" breadcrumb="FlagForge" />
 
-      {loading ? (
-        <TableSkeleton rows={6} cols={3} />
-      ) : error ? (
-        <EmptyState icon={Activity} tone="bad" title="Couldn't load activity" description={error} />
-      ) : visible.length === 0 ? (
-        <EmptyState
-          icon={Activity}
-          title={filter === 'all' ? 'Nothing logged yet' : `No “${filter}” events`}
-          description={
-            filter === 'all'
-              ? 'Every flag create, update and toggle will show up here.'
-              : 'Try a different action filter.'
-          }
-        />
-      ) : (
-        <Card padded={false}>
-          <CardHeader
-            icon={Activity}
-            title="Release activity ledger"
-            action={<Badge tone="neutral">{visible.length} entries</Badge>}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="mx-auto max-w-content">
+          <PageHeader
+            title="Audit log"
+            description="Every create, update, enable, disable, and targeting change — who did it, when, and exactly what moved."
+            action={
+              <Button variant="secondary" icon={RotateCcw} onClick={load} loading={loading}>
+                Refresh
+              </Button>
+            }
           />
-          <ul className="divide-y divide-border">
-            {visible.map((entry) => {
-              const meta = ACTION_META[entry.action] || {
-                tone: 'neutral',
-                icon: Activity,
-                label: entry.action,
-                iconClass: 'text-muted',
+
+          <Card className="mb-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Field label="Actor">
+                <Dropdown
+                  value={filters.actor}
+                  onChange={(value) => setFilter('actor', value)}
+                  options={actorOptions}
+                />
+              </Field>
+
+              <Field label="Flag / entity key">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <Input
+                    mono
+                    className="pl-9"
+                    value={filters.entity_key}
+                    onChange={(e) => setFilter('entity_key', e.target.value)}
+                    placeholder="new-checkout-flow"
+                  />
+                </div>
+              </Field>
+
+              <Field label="Action">
+                <Dropdown
+                  value={filters.action}
+                  onChange={(value) => setFilter('action', value)}
+                  options={ACTION_OPTIONS}
+                />
+              </Field>
+
+              <Field label="Entity type">
+                <Dropdown
+                  value={filters.entity_type}
+                  onChange={(value) => setFilter('entity_type', value)}
+                  options={ENTITY_OPTIONS}
+                />
+              </Field>
+
+              <Field label="From">
+                <Input
+                  type="date"
+                  value={filters.start}
+                  onChange={(e) => setFilter('start', e.target.value)}
+                />
+              </Field>
+
+              <Field label="To">
+                <Input
+                  type="date"
+                  value={filters.end}
+                  onChange={(e) => setFilter('end', e.target.value)}
+                />
+              </Field>
+
+              <div className="flex items-end">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    checked={scopeToEnvironment}
+                    onChange={(e) => setScopeToEnvironment(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-accent"
+                  />
+                  <span>
+                    Only {selectedEnv?.name || 'current environment'}
+                    <span className="block text-xs text-muted">
+                      {environments.length} environment{environments.length === 1 ? '' : 's'} tracked
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex items-end justify-end">
+                {filtersActive && (
+                  <Button variant="ghost" onClick={resetFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {loading ? (
+            <TableSkeleton rows={6} cols={5} />
+          ) : error ? (
+            <EmptyState icon={Activity} title="Couldn't load activity" description={error} />
+          ) : entries.length === 0 ? (
+            <EmptyState
+              icon={Activity}
+              title={filtersActive ? 'No entries match these filters' : 'Nothing logged yet'}
+              description={
+                filtersActive
+                  ? 'Try widening the date range or clearing a filter.'
+                  : 'Every flag create, update, and toggle will show up here.'
               }
-              const Icon = meta.icon
-              const summary = summarize(entry)
+              action={
+                filtersActive && (
+                  <Button variant="secondary" onClick={resetFilters}>
+                    Clear filters
+                  </Button>
+                )
+              }
+            />
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-muted">
+                {entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
+                {filtersActive ? ' matching your filters' : ''}
+              </p>
 
-              return (
-                <li key={entry.id} className="flex items-start gap-3.5 px-5 py-4">
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surfaceMuted ${meta.iconClass}`}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={meta.tone} size="sm">
-                        {meta.label}
-                      </Badge>
-                      <span className="truncate font-mono text-sm text-ink">
-                        {entry.entity_type}
-                        <span className="text-muted">#{entry.entity_id}</span>
+              <Table columns={COLUMNS}>
+                {entries.map((entry) => (
+                  <Row key={entry.id}>
+                    <Cell className="whitespace-nowrap font-mono text-xs text-muted">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </Cell>
+                    <Cell className="text-sm text-ink">{entry.actor}</Cell>
+                    <Cell>
+                      <span className="block truncate font-mono text-sm text-ink">
+                        {entry.entity_key || `${entry.entity_type}#${entry.entity_id}`}
                       </span>
-                    </div>
-                    {summary && (
-                      <p className="mt-1 break-words font-mono text-xs text-muted">{summary}</p>
-                    )}
-                    <p className="mt-1 text-xs text-muted">by {entry.actor}</p>
-                  </div>
+                      <span className="text-xs text-muted">
+                        {entry.entity_type}
+                        {entry.environment_key ? ` · ${entry.environment_key}` : ''}
+                      </span>
+                    </Cell>
+                    <Cell>
+                      <Badge tone={ACTION_TONE[entry.action] || 'neutral'}>{entry.action}</Badge>
+                    </Cell>
+                    <Cell className="max-w-xs">
+                      <span className="block truncate font-mono text-xs text-muted" title={entry.summary}>
+                        {entry.summary || '—'}
+                      </span>
+                    </Cell>
+                    <Cell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={FileDiff}
+                        className="whitespace-nowrap"
+                        onClick={() => setDiffEntry(entry)}
+                      >
+                        View diff
+                      </Button>
+                    </Cell>
+                  </Row>
+                ))}
+              </Table>
+            </>
+          )}
+        </div>
+      </div>
 
-                  <span
-                    className="shrink-0 whitespace-nowrap font-mono text-xs text-muted"
-                    title={new Date(entry.timestamp).toLocaleString()}
-                  >
-                    {relativeTime(entry.timestamp)}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </Card>
-      )}
-    </AppLayout>
+      <AuditDiffModal entry={diffEntry} onClose={() => setDiffEntry(null)} />
+    </div>
   )
 }

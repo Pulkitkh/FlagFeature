@@ -295,7 +295,10 @@ def test_cache_is_invalidated_when_targeting_rules_change(client, fake_redis):
     client.put(
         "/flags/new-checkout-flow/targeting/staging", json={"user_ids": ["alice@example.com"]}
     )
-    assert fake_redis.store == {}, "targeting update should clear this flag's cache"
+    # Only the evaluation cache is cleared — the analytics counters sharing this
+    # Redis are usage history and must survive a configuration change.
+    cached_evaluations = [key for key in fake_redis.store if key.startswith("flagforge:evaluate:")]
+    assert cached_evaluations == [], "targeting update should clear this flag's cache"
 
     refreshed = _evaluate(client, "new-checkout-flow", "staging", context)
     assert refreshed["cached"] is False
@@ -358,14 +361,20 @@ def test_audit_log_records_every_change(client):
     _create_environment(client)
     _create_flag(client)
     client.put("/flags/new-checkout-flow", json={"enabled": False})
+    client.put("/flags/new-checkout-flow", json={"description": "Now with a note"})
     client.put("/flags/new-checkout-flow/environments/staging", json={"enabled": True})
+    client.put("/flags/new-checkout-flow/targeting/staging", json={"percentage": 25})
 
     entries = client.get("/audit-log").json()
     actions = {(entry["entity_type"], entry["action"]) for entry in entries}
 
+    assert ("environment", "created") in actions
     assert ("flag", "created") in actions
+    # Flipping only the kill switch is recorded as "disabled", not a vague "updated".
+    assert ("flag", "disabled") in actions
     assert ("flag", "updated") in actions
-    assert ("targeting_rule", "toggled") in actions
+    assert ("environment_override", "toggled") in actions
+    assert ("targeting_rule", "updated") in actions
     # Newest first.
     assert entries == sorted(entries, key=lambda entry: entry["timestamp"], reverse=True)
 

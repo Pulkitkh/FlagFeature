@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
 from app.database import get_db
+from app.deps import get_actor
 
 router = APIRouter(prefix="/flags", tags=["flags"])
 
@@ -50,9 +51,13 @@ def _validate_value(flag: models.Flag, value) -> None:
 
 
 @router.post("", response_model=schemas.FlagOut, status_code=201)
-def create_flag(payload: schemas.FlagCreate, db: Session = Depends(get_db)):
+def create_flag(
+    payload: schemas.FlagCreate,
+    db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
+):
     try:
-        return crud.create_flag(db, payload)
+        return crud.create_flag(db, payload, actor=actor)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail=f"Flag '{payload.key}' already exists")
@@ -69,15 +74,24 @@ def get_flag(key: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{key}", response_model=schemas.FlagOut)
-def update_flag(key: str, payload: schemas.FlagUpdate, db: Session = Depends(get_db)):
+def update_flag(
+    key: str,
+    payload: schemas.FlagUpdate,
+    db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
+):
     flag = _get_flag_or_404(db, key)
-    return crud.update_flag(db, flag, payload)
+    return crud.update_flag(db, flag, payload, actor=actor)
 
 
 @router.delete("/{key}", status_code=204)
-def delete_flag(key: str, db: Session = Depends(get_db)):
+def delete_flag(
+    key: str,
+    db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
+):
     flag = _get_flag_or_404(db, key)
-    crud.delete_flag(db, flag)
+    crud.delete_flag(db, flag, actor=actor)
 
 
 @router.get("/{key}/versions", response_model=list[schemas.FlagVersionOut])
@@ -92,12 +106,13 @@ def set_environment_override(
     env_key: str,
     payload: schemas.EnvironmentOverrideSet,
     db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
 ):
     """Turn a flag on/off (or pin a value) for a single environment."""
     flag = _get_flag_or_404(db, key)
     environment = _get_environment_or_404(db, env_key)
     _validate_value(flag, payload.value)
-    return crud.set_environment_override(db, flag, environment, payload)
+    return crud.set_environment_override(db, flag, environment, payload, actor=actor)
 
 
 @router.get("/{key}/targeting/{env_key}", response_model=schemas.TargetingRulesOut)
@@ -113,8 +128,9 @@ def set_targeting_rules(
     env_key: str,
     payload: schemas.TargetingRulesUpdate,
     db: Session = Depends(get_db),
+    actor: str = Depends(get_actor),
 ):
     flag = _get_flag_or_404(db, key)
     environment = _get_environment_or_404(db, env_key)
     _validate_value(flag, payload.value)
-    return crud.set_targeting_rules(db, flag, environment, payload)
+    return crud.set_targeting_rules(db, flag, environment, payload, actor=actor)

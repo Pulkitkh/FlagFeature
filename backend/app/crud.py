@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app import models, schemas
+from app import audit, models, schemas
 from app.redis_client import (
     invalidate_evaluation_cache,
     invalidate_evaluation_cache_for_environment,
@@ -16,15 +16,34 @@ _ACTIVITY_SCAN_LIMIT = 5000
 # ---------- Environments ----------
 
 
-def create_environment(db: Session, payload: schemas.EnvironmentCreate) -> models.Environment:
+def create_environment(
+    db: Session, payload: schemas.EnvironmentCreate, actor: str = "system"
+) -> models.Environment:
     env = models.Environment(key=payload.key, name=payload.name)
     db.add(env)
     db.commit()
     db.refresh(env)
+
+    _write_audit(
+        db,
+        actor=actor,
+        action="created",
+        entity_type="environment",
+        entity_id=str(env.id),
+        entity_key=env.key,
+        environment_id=env.id,
+        after=audit.environment_state(env),
+    )
     return env
 
 
-def update_environment(db: Session, environment: models.Environment, payload: schemas.EnvironmentUpdate) -> models.Environment:
+def update_environment(
+    db: Session,
+    environment: models.Environment,
+    payload: schemas.EnvironmentUpdate,
+    actor: str = "system",
+) -> models.Environment:
+    before = audit.environment_state(environment)
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(environment, field, value)
@@ -32,6 +51,18 @@ def update_environment(db: Session, environment: models.Environment, payload: sc
     db.add(environment)
     db.commit()
     db.refresh(environment)
+
+    _write_audit(
+        db,
+        actor=actor,
+        action="updated",
+        entity_type="environment",
+        entity_id=str(environment.id),
+        entity_key=environment.key,
+        environment_id=environment.id,
+        before=before,
+        after=audit.environment_state(environment),
+    )
     return environment
 
 
@@ -76,6 +107,7 @@ def upsert_user_group_members(
     db: Session,
     environment: models.Environment,
     payload: schemas.UserGroupMembersUpsert,
+    actor: str = "system",
 ) -> dict:
     group_key = payload.group_key.strip()
     user_ids = _normalize_string_list(payload.user_ids)
@@ -106,12 +138,14 @@ def upsert_user_group_members(
     invalidate_evaluation_cache_for_environment(environment.key)
     _write_audit(
         db,
-        actor="system",
+        actor=actor,
         action="updated",
         entity_type="user_group_membership",
         entity_id=group_key,
+        entity_key=group_key,
         environment_id=environment.id,
-        details={"group_key": group_key, "user_ids": user_ids},
+        before={"members": sorted(existing_user_ids)},
+        after={"members": sorted(existing_user_ids | set(user_ids))},
     )
     return {"group_key": group_key, "user_ids": user_ids}
 
@@ -121,6 +155,7 @@ def remove_user_group_member(
     environment: models.Environment,
     group_key: str,
     user_id: str,
+    actor: str = "system",
 ) -> None:
     membership = (
         db.query(models.UserGroupMembership)
@@ -139,18 +174,22 @@ def remove_user_group_member(
     invalidate_evaluation_cache_for_environment(environment.key)
     _write_audit(
         db,
-        actor="system",
+        actor=actor,
         action="deleted",
         entity_type="user_group_membership",
         entity_id=f"{group_key}:{user_id}",
+        entity_key=group_key,
         environment_id=environment.id,
+        before={"member": user_id},
     )
 
 
 # ---------- Flags ----------
 
 
-def create_flag(db: Session, payload: schemas.FlagCreate) -> models.Flag:
+def create_flag(
+    db: Session, payload: schemas.FlagCreate, actor: str = "system"
+) -> models.Flag:
     flag = models.Flag(
         key=payload.key,
         type=payload.type,
@@ -163,8 +202,16 @@ def create_flag(db: Session, payload: schemas.FlagCreate) -> models.Flag:
     db.commit()
     db.refresh(flag)
 
-    _write_version(db, flag, created_by="system", change_note="Flag created")
-    _write_audit(db, actor="system", action="created", entity_type="flag", entity_id=str(flag.id))
+    _write_version(db, flag, created_by=actor, change_note="Flag created")
+    _write_audit(
+        db,
+        actor=actor,
+        action="created",
+        entity_type="flag",
+        entity_id=str(flag.id),
+        entity_key=flag.key,
+        after=audit.flag_state(flag),
+    )
     return flag
 
 
@@ -177,8 +224,9 @@ def get_flag_by_key(db: Session, key: str) -> models.Flag | None:
 
 
 def update_flag(
-    db: Session, flag: models.Flag, payload: schemas.FlagUpdate
+    db: Session, flag: models.Flag, payload: schemas.FlagUpdate, actor: str = "system"
 ) -> models.Flag:
+    before = audit.flag_state(flag)
     update_data = payload.model_dump(exclude_unset=True, exclude={"change_note"})
     for field, value in update_data.items():
         setattr(flag, field, value)
@@ -187,27 +235,52 @@ def update_flag(
     db.commit()
     db.refresh(flag)
 
+    after = audit.flag_state(flag)
     _write_version(
-        db, flag, created_by="system", change_note=payload.change_note or "Flag updated"
+        db, flag, created_by=actor, change_note=payload.change_note or "Flag updated"
     )
     _write_audit(
         db,
-        actor="system",
-        action="updated",
+        actor=actor,
+        # "enabled"/"disabled" reads better in the log than a generic "updated"
+        # when the only thing that moved was the kill switch.
+        action=_flag_action(before, after),
         entity_type="flag",
         entity_id=str(flag.id),
-        details=update_data,
+        entity_key=flag.key,
+        before=before,
+        after=after,
+        details={"change_note": payload.change_note} if payload.change_note else None,
     )
     invalidate_evaluation_cache(flag.key)
     return flag
 
 
-def delete_flag(db: Session, flag: models.Flag) -> None:
+def _flag_action(before: dict, after: dict) -> str:
+    if before.get("enabled") != after.get("enabled"):
+        changed_only_enabled = {
+            field for field in set(before) | set(after) if before.get(field) != after.get(field)
+        } == {"enabled"}
+        if changed_only_enabled:
+            return "enabled" if after.get("enabled") else "disabled"
+    return "updated"
+
+
+def delete_flag(db: Session, flag: models.Flag, actor: str = "system") -> None:
     flag_id = flag.id
     flag_key = flag.key
+    before = audit.flag_state(flag)
     db.delete(flag)
     db.commit()
-    _write_audit(db, actor="system", action="deleted", entity_type="flag", entity_id=str(flag_id))
+    _write_audit(
+        db,
+        actor=actor,
+        action="deleted",
+        entity_type="flag",
+        entity_id=str(flag_id),
+        entity_key=flag_key,
+        before=before,
+    )
     invalidate_evaluation_cache(flag_key)
 
 
@@ -269,8 +342,10 @@ def set_environment_override(
     flag: models.Flag,
     environment: models.Environment,
     payload: schemas.EnvironmentOverrideSet,
+    actor: str = "system",
 ) -> models.TargetingRule:
     override = get_environment_override(db, flag.id, environment.id)
+    before = audit.override_state(override)
     if override is None:
         override = models.TargetingRule(
             flag_id=flag.id,
@@ -288,12 +363,14 @@ def set_environment_override(
 
     _write_audit(
         db,
-        actor="system",
+        actor=actor,
         action="toggled",
-        entity_type="targeting_rule",
+        entity_type="environment_override",
         entity_id=str(override.id),
+        entity_key=flag.key,
         environment_id=environment.id,
-        details={"enabled": payload.enabled, "value": payload.value},
+        before=before,
+        after=audit.override_state(override),
     )
     invalidate_evaluation_cache(flag.key, environment.key)
     return override
@@ -350,7 +427,9 @@ def set_targeting_rules(
     flag: models.Flag,
     environment: models.Environment,
     payload: schemas.TargetingRulesUpdate,
+    actor: str = "system",
 ) -> dict:
+    before = audit.targeting_state(get_targeting_rules(db, flag, environment))
     user_ids = _normalize_string_list(payload.user_ids)
     group_keys = _normalize_string_list(payload.group_keys)
     served_value = flag.on_value(payload.value)
@@ -404,16 +483,20 @@ def set_targeting_rules(
 
     db.commit()
     invalidate_evaluation_cache(flag.key, environment.key)
+
+    updated = get_targeting_rules(db, flag, environment)
     _write_audit(
         db,
-        actor="system",
+        actor=actor,
         action="updated",
         entity_type="targeting_rule",
         entity_id=str(flag.id),
+        entity_key=flag.key,
         environment_id=environment.id,
-        details={"user_ids": user_ids, "group_keys": group_keys, "percentage": payload.percentage},
+        before=before,
+        after=audit.targeting_state(updated),
     )
-    return get_targeting_rules(db, flag, environment)
+    return updated
 
 
 # ---------- Audit log ----------
@@ -425,28 +508,83 @@ def _write_audit(
     action: str,
     entity_type: str,
     entity_id: str,
+    entity_key: str | None = None,
     environment_id: int | None = None,
+    before: dict | None = None,
+    after: dict | None = None,
     details: dict | None = None,
 ) -> None:
+    """Record one change, with the state either side of it and the diff between."""
     entry = models.AuditLog(
-        actor=actor,
+        actor=actor or "system",
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
+        entity_key=entity_key,
         environment_id=environment_id,
+        before_state=before,
+        after_state=after,
+        diff=audit.diff_states(before, after),
         details=details or {},
     )
     db.add(entry)
     db.commit()
 
 
-def list_audit_log(db: Session, limit: int = 100) -> list[models.AuditLog]:
-    return (
-        db.query(models.AuditLog)
-        .order_by(models.AuditLog.timestamp.desc())
-        .limit(limit)
-        .all()
-    )
+def list_audit_log(
+    db: Session,
+    limit: int = 100,
+    actor: str | None = None,
+    entity_key: str | None = None,
+    entity_type: str | None = None,
+    action: str | None = None,
+    environment_key: str | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[models.AuditLog]:
+    """Newest-first audit entries, narrowed by any combination of filters."""
+    query = db.query(models.AuditLog)
+
+    if actor:
+        query = query.filter(models.AuditLog.actor.ilike(f"%{actor}%"))
+    if entity_key:
+        query = query.filter(models.AuditLog.entity_key.ilike(f"%{entity_key}%"))
+    if entity_type:
+        query = query.filter(models.AuditLog.entity_type == entity_type)
+    if action:
+        query = query.filter(models.AuditLog.action == action)
+    if environment_key:
+        environment = get_environment_by_key(db, environment_key)
+        # An unknown environment key matches nothing rather than everything.
+        query = query.filter(
+            models.AuditLog.environment_id == (environment.id if environment else -1)
+        )
+    if start is not None:
+        query = query.filter(models.AuditLog.timestamp >= _timestamp_bound(db, start))
+    if end is not None:
+        query = query.filter(models.AuditLog.timestamp <= _timestamp_bound(db, end))
+
+    return query.order_by(models.AuditLog.timestamp.desc()).limit(limit).all()
+
+
+def list_audit_actors(db: Session) -> list[str]:
+    """Distinct actors, for populating the audit log's filter dropdown."""
+    rows = db.query(models.AuditLog.actor).distinct().order_by(models.AuditLog.actor.asc()).all()
+    return [row[0] for row in rows if row[0]]
+
+
+def _timestamp_bound(db: Session, value: datetime) -> datetime:
+    """Shape a datetime filter to match how the backing database stores timestamps.
+
+    Postgres keeps the offset on a timestamptz column, so the bound stays
+    timezone-aware. SQLite drops tzinfo when writing, so an aware bound would
+    never line up with the stored text — it gets normalised to naive UTC.
+    """
+    aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    dialect = getattr(getattr(db, "bind", None), "dialect", None)
+    if dialect is not None and dialect.name == "sqlite":
+        return aware.astimezone(timezone.utc).replace(tzinfo=None)
+    return aware.astimezone(timezone.utc)
 
 
 # ---------- Overview aggregates (dashboard) ----------

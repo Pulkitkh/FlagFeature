@@ -1,45 +1,18 @@
 import Card from './Card'
 
-const ALIGN = { left: 'text-left', center: 'text-center', right: 'text-right' }
-
-/**
- * columns accepts either a plain string or { label, align, width, hideBelow }.
- * Alignment lives on the column so the header cell and every body cell in that
- * column always agree — the usual cause of "the numbers don't line up".
- */
-function normalizeColumn(column) {
-  return typeof column === 'string' ? { label: column, align: 'left' } : { align: 'left', ...column }
-}
-
-const HIDE_BELOW = {
-  sm: 'hidden sm:table-cell',
-  md: 'hidden md:table-cell',
-  lg: 'hidden lg:table-cell',
-}
-
-export function Table({ columns, children, className = '' }) {
-  const normalized = columns.map(normalizeColumn)
-
+export function Table({ columns, children }) {
   return (
-    <Card padded={false} className={`overflow-hidden ${className}`}>
+    <Card padded={false} className="overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-          <colgroup>
-            {normalized.map((column, index) => (
-              <col key={column.label || index} style={column.width ? { width: column.width } : undefined} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr className="border-b border-border bg-surfaceMuted">
-              {normalized.map((column, index) => (
+        <table className="w-full text-left text-sm">
+          <thead className="bg-surfaceMuted">
+            <tr className="border-b border-border">
+              {columns.map((col) => (
                 <th
-                  key={column.label || index}
-                  scope="col"
-                  className={`whitespace-nowrap px-5 py-3 text-2xs font-semibold uppercase tracking-label text-muted ${
-                    ALIGN[column.align]
-                  } ${column.hideBelow ? HIDE_BELOW[column.hideBelow] : ''}`}
+                  key={col}
+                  className="px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted"
                 >
-                  {column.label}
+                  {col}
                 </th>
               ))}
             </tr>
@@ -51,61 +24,34 @@ export function Table({ columns, children, className = '' }) {
   )
 }
 
-export function Row({ onClick, children, className = '' }) {
-  const interactive = Boolean(onClick)
+export function Row({ onClick, children }) {
   return (
     <tr
       onClick={onClick}
-      onKeyDown={
-        interactive
-          ? (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onClick(event)
-              }
-            }
-          : undefined
-      }
-      tabIndex={interactive ? 0 : undefined}
-      role={interactive ? 'link' : undefined}
-      className={`group border-b border-border/70 transition-colors last:border-b-0 ${
-        interactive ? 'cursor-pointer hover:bg-accentSoft/70 focus-visible:bg-accentSoft/70' : ''
-      } ${className}`}
+      className={`border-b border-border/70 last:border-b-0 transition-colors ${
+        onClick ? 'cursor-pointer hover:bg-accentSoft/60' : ''
+      }`}
     >
       {children}
     </tr>
   )
 }
 
-export function Cell({ children, align = 'left', hideBelow, className = '' }) {
-  return (
-    <td
-      className={`px-5 py-3.5 align-middle ${ALIGN[align]} ${
-        hideBelow ? HIDE_BELOW[hideBelow] : ''
-      } ${className}`}
-    >
-      {children}
-    </td>
-  )
+export function Cell({ children, className = '' }) {
+  return <td className={`px-5 py-4 align-middle ${className}`}>{children}</td>
 }
 
-export function TableSkeleton({ rows = 5, cols = 4 }) {
+export function TableSkeleton({ rows = 4, cols = 4 }) {
   return (
     <Card padded={false} className="overflow-hidden">
-      <div className="border-b border-border bg-surfaceMuted px-5 py-3.5">
-        <div className="h-3 w-28 animate-pulse rounded bg-border" />
-      </div>
-      <div className="divide-y divide-border/70">
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <div key={rowIndex} className="flex items-center gap-6 px-5 py-4">
-            {Array.from({ length: cols }).map((_, colIndex) => (
+      <div className="divide-y divide-border">
+        {[...Array(rows)].map((_, r) => (
+          <div key={r} className="flex gap-4 px-5 py-4">
+            {[...Array(cols)].map((_, c) => (
               <div
-                key={colIndex}
-                className="h-3.5 animate-pulse rounded bg-surfaceSunken"
-                style={{
-                  flex: colIndex === 0 ? '0 0 12rem' : '1 1 0',
-                  animationDelay: `${(rowIndex * cols + colIndex) * 40}ms`,
-                }}
+                key={c}
+                className="h-4 flex-1 animate-pulse rounded bg-hoverBg"
+                style={{ maxWidth: c === 0 ? '160px' : undefined }}
               />
             ))}
           </div>
@@ -115,22 +61,17 @@ export function TableSkeleton({ rows = 5, cols = 4 }) {
   )
 }
 
-export function EmptyState({ icon: Icon, title, description, action, tone = 'accent' }) {
-  const iconTone = {
-    accent: 'border-accent/25 bg-accentSoft text-accent',
-    bad: 'border-bad/25 bg-badSoft text-bad',
-  }[tone]
-
+export function EmptyState({ icon: Icon, title, description, action }) {
   return (
-    <Card className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+    <Card className="flex flex-col items-center gap-3 px-6 py-16 text-center">
       {Icon && (
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${iconTone}`}>
-          <Icon className="h-5 w-5" aria-hidden="true" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surfaceMuted">
+          <Icon className="h-5 w-5 text-accent" />
         </div>
       )}
-      <div className="max-w-sm">
+      <div>
         <p className="text-sm font-semibold text-ink">{title}</p>
-        {description && <p className="mt-1.5 text-sm leading-relaxed text-muted">{description}</p>}
+        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {action}
     </Card>

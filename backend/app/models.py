@@ -153,15 +153,66 @@ class UserGroupMembership(Base):
 
 
 class AuditLog(Base):
+    """One row per change, with enough state to answer "what actually changed?".
+
+    `before_state` / `after_state` hold the full entity either side of the
+    change and `diff` holds only the fields that moved, so the dashboard can
+    render a readable diff without re-deriving it.
+    """
+
     __tablename__ = "audit_log"
 
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), default=utcnow, index=True)
-    actor = Column(String(100), nullable=False, default="system")
+    actor = Column(String(100), nullable=False, default="system", index=True)
     action = Column(String(50), nullable=False, index=True)  # created, updated, deleted, toggled
     entity_type = Column(String(50), nullable=False, index=True)  # flag, environment, targeting_rule
     entity_id = Column(String(50), nullable=False)
+    # The human-readable key (flag key, environment key, group key). entity_id
+    # is a database id, which nobody can filter the audit log by.
+    entity_key = Column(String(100), nullable=True, index=True)
     environment_id = Column(
         Integer, ForeignKey("environments.id"), index=True, nullable=True
     )
+    before_state = Column(JSON, nullable=True)
+    after_state = Column(JSON, nullable=True)
+    diff = Column(JSON, nullable=True, default=dict)
     details = Column(JSON, nullable=True, default=dict)
+
+
+class FlagEvaluationStat(Base):
+    """Hourly evaluation counts, flushed out of Redis by scripts/flush_analytics.py.
+
+    Redis holds the live counters (one INCR per evaluation); this table is the
+    durable history the analytics chart reads.
+    """
+
+    __tablename__ = "flag_evaluation_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    flag_key = Column(String(100), index=True, nullable=False)
+    environment_key = Column(String(50), index=True, nullable=False)
+    bucket_hour = Column(DateTime(timezone=True), index=True, nullable=False)
+    count = Column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "flag_key", "environment_key", "bucket_hour", name="uq_stat_flag_env_hour"
+        ),
+    )
+
+
+class FlagCleanupReview(Base):
+    """Marks a stale-flag suggestion as dealt with, so it stops being suggested."""
+
+    __tablename__ = "flag_cleanup_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    flag_id = Column(
+        Integer, ForeignKey("flags.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+    )
+    reviewed_by = Column(String(100), nullable=False, default="system")
+    reviewed_at = Column(DateTime(timezone=True), default=utcnow)
+    note = Column(String(500), nullable=True, default="")
+
+    flag = relationship("Flag")

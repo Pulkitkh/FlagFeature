@@ -18,6 +18,13 @@ class Settings:
         "CORS_ORIGINS", "http://localhost:5173,http://localhost:3000"
     ).split(",")
     environment: str = os.getenv("APP_ENV", "development")
+    # True: create tables on startup (handy locally). False: rely on
+    # `alembic upgrade head`, which is what a real deployment should do.
+    auto_create_tables: bool = os.getenv("AUTO_CREATE_TABLES", "true").lower() not in {
+        "false",
+        "0",
+        "no",
+    }
 
 
 @lru_cache

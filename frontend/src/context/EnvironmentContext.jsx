@@ -1,8 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { api } from '../api/client'
 
 const EnvironmentContext = createContext(null)
-const STORAGE_KEY = 'flagforge:selectedEnv'
 
 const DEFAULT_ENVIRONMENTS = [
   { key: 'development', name: 'Development' },
@@ -13,72 +12,66 @@ const DEFAULT_ENVIRONMENTS = [
 export function EnvironmentProvider({ children }) {
   const [environments, setEnvironments] = useState([])
   const [selectedKey, setSelectedKey] = useState(
-    () => localStorage.getItem(STORAGE_KEY) || 'development'
+    () => localStorage.getItem('flagforge:selectedEnv') || 'development'
   )
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  // A ref rather than state: seeding must not be part of the callback's
-  // identity, or the effect that calls it re-runs and seeds twice.
-  const seeding = useRef(false)
+  const [seeding, setSeeding] = useState(false)
 
   const loadEnvironments = useCallback(async () => {
     setLoading(true)
     try {
-      let envs = await api.listEnvironments()
-
-      if (envs.length === 0 && !seeding.current) {
-        // First run: create the standard three so the switcher isn't empty on a
-        // brand-new backend.
-        seeding.current = true
-        try {
-          await Promise.all(
-            DEFAULT_ENVIRONMENTS.map((env) => api.createEnvironment(env).catch(() => null))
-          )
-          envs = await api.listEnvironments()
-        } finally {
-          seeding.current = false
-        }
-      }
-
+      const envs = await api.listEnvironments()
       setEnvironments(envs)
-      setError(null)
-    } catch (err) {
-      // Previously this failed silently and every page just rendered empty.
-      setEnvironments([])
-      setError(err.message || 'Could not reach the API.')
+
+      if (envs.length === 0 && !seeding) {
+        // First run: create the standard three environments automatically
+        // so the switcher isn't empty on a brand-new backend.
+        setSeeding(true)
+        for (const env of DEFAULT_ENVIRONMENTS) {
+          try {
+            await api.createEnvironment(env)
+          } catch {
+            // ignore races / already-exists
+          }
+        }
+        const seeded = await api.listEnvironments()
+        setEnvironments(seeded)
+        setSeeding(false)
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [seeding])
 
   useEffect(() => {
     loadEnvironments()
-  }, [loadEnvironments])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, selectedKey)
+    localStorage.setItem('flagforge:selectedEnv', selectedKey)
   }, [selectedKey])
 
-  const selected = environments.find((env) => env.key === selectedKey) || environments[0]
+  const selected = environments.find((e) => e.key === selectedKey) || environments[0]
 
-  const value = useMemo(
-    () => ({
-      environments,
-      selected,
-      selectedKey: selected?.key || selectedKey,
-      setSelectedKey,
-      loading,
-      error,
-      refresh: loadEnvironments,
-    }),
-    [environments, selected, selectedKey, loading, error, loadEnvironments]
+  return (
+    <EnvironmentContext.Provider
+      value={{
+        environments,
+        selected,
+        selectedKey: selected?.key || selectedKey,
+        setSelectedKey,
+        loading,
+        refresh: loadEnvironments,
+      }}
+    >
+      {children}
+    </EnvironmentContext.Provider>
   )
-
-  return <EnvironmentContext.Provider value={value}>{children}</EnvironmentContext.Provider>
 }
 
 export function useEnvironment() {
   const ctx = useContext(EnvironmentContext)
-  if (!ctx) throw new Error('useEnvironment must be used within an EnvironmentProvider')
+  if (!ctx) throw new Error('useEnvironment must be used within EnvironmentProvider')
   return ctx
 }

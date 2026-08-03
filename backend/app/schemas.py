@@ -157,8 +157,14 @@ class AuditLogOut(BaseModel):
     action: str
     entity_type: str
     entity_id: str
-    environment_id: Optional[int]
-    details: Optional[dict]
+    entity_key: Optional[str] = None
+    environment_id: Optional[int] = None
+    environment_key: Optional[str] = None
+    before_state: Optional[dict] = None
+    after_state: Optional[dict] = None
+    diff: Optional[dict] = None
+    summary: Optional[str] = None
+    details: Optional[dict] = None
 
 
 # ---------- Overview (dashboard aggregates) ----------
@@ -201,3 +207,81 @@ class OverviewOut(BaseModel):
     environment_coverage: list[EnvironmentCoverage]
     activity: list[ActivityPoint]
     recent_activity: list[AuditLogOut]
+
+
+# ---------- Analytics (Day 16) ----------
+
+
+class EvaluationPoint(BaseModel):
+    date: str
+    evaluations: int
+
+
+class FlagAnalyticsOut(BaseModel):
+    flag_key: str
+    environment_key: Optional[str] = None
+    days: int
+    total: int
+    series: list[EvaluationPoint]
+
+
+# ---------- Cleanup suggestions (Day 17) ----------
+
+
+class CleanupSuggestion(BaseModel):
+    flag_key: str
+    flag_id: int
+    state: str  # "on" (fully rolled out) or "off" (fully disabled)
+    reason: str
+    owner_team: Optional[str] = None
+    stale_since: datetime
+    stale_days: int
+    evaluations: int
+    reviewed: bool = False
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+
+
+class CleanupSuggestionsOut(BaseModel):
+    stale_days: int
+    suggestions: list[CleanupSuggestion]
+
+
+class CleanupReviewCreate(BaseModel):
+    note: Optional[str] = Field(default="", max_length=500)
+
+
+class CleanupReviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    flag_id: int
+    reviewed_by: str
+    reviewed_at: datetime
+    note: Optional[str] = None
+
+
+# ---------- Snapshot for the middleware SDK (Day 14) ----------
+
+
+class SnapshotFlag(BaseModel):
+    key: str
+    type: FlagType
+    default_value: Any
+    enabled: bool
+    user_ids: list[str] = Field(default_factory=list)
+    group_keys: list[str] = Field(default_factory=list)
+    percentage: Optional[float] = None
+    targeted_value: Optional[Any] = None
+    override_enabled: Optional[bool] = None
+    override_value: Optional[Any] = None
+
+
+class SnapshotOut(BaseModel):
+    environment_key: str
+    generated_at: datetime
+    version: str
+    flags: list[SnapshotFlag]
+    group_members: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="group_key -> user ids, so the client can resolve group rules offline",
+    )
