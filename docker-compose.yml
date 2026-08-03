@@ -39,6 +39,11 @@ services:
       DATABASE_URL: postgresql+psycopg2://flagforge:flagforge@postgres:5432/flagforge
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      # Alembic owns the schema here. The container entrypoint runs
+      # `alembic upgrade head` before uvicorn starts, so the database is
+      # always current — create_all would only ever add missing tables and
+      # would silently leave an existing table missing its new columns.
+      AUTO_CREATE_TABLES: "false"
     ports:
       - "8000:8000"
 

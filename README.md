@@ -247,24 +247,48 @@ DATABASE_URL="sqlite:///./flagforge.db" uvicorn app.main:app --reload
 
 ### Migrations
 
-Locally the app creates its tables on startup, which keeps setup to one
-command. In production set `AUTO_CREATE_TABLES=false` and apply migrations
-instead, so schema changes are versioned:
+Under Docker this is automatic: the backend container runs
+`python -m scripts.migrate` before uvicorn starts, so the schema is current
+before the first request is served. `AUTO_CREATE_TABLES=false` is set there,
+making Alembic the single source of truth.
+
+Running the backend directly, the app still creates its tables on startup for
+convenience. To manage the schema properly:
 
 ```bash
 cd backend
-alembic upgrade head            # apply everything
+python -m scripts.migrate       # what the container runs — safe on any database
+alembic upgrade head            # equivalent for an already-managed database
 alembic downgrade -1            # step back one revision
 alembic history                 # what exists
 ```
 
-A database created by the old `create_all` path can adopt migrations without
-being recreated:
+`scripts/migrate.py` handles three cases: an empty database, an
+Alembic-managed one, and one that has tables but has never seen Alembic. That
+last case is what every database built by the old `create_all` startup path
+looks like — it detects which schema is present, stamps that revision, and
+upgrades from there. Existing data is preserved.
+
+#### If you see `column audit_log.entity_key does not exist`
+
+Your database predates Milestone 3 and was never migrated. `create_all` adds
+*missing tables* but never alters an existing one, so `audit_log` kept its old
+columns while the new tables appeared alongside it. Rebuild the backend
+container — the entrypoint repairs the schema in place, keeping your flags,
+environments and history:
 
 ```bash
-alembic stamp 0001              # "you already have the Milestone 1+2 schema"
-alembic upgrade head            # then pick up the Milestone 3 changes
+docker compose up -d --build backend
 ```
+
+Running without Docker, do the same thing directly:
+
+```bash
+cd backend && python -m scripts.migrate
+```
+
+Nothing needs to be dropped or recreated. `tests/test_migrations.py` covers
+both the legacy and half-upgraded shapes so this can't regress.
 
 Redis is optional for this option — `/health` will just report it as
 `unavailable`, and evaluation falls back to computing results live instead

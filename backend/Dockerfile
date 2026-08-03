@@ -11,6 +11,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
+# Migrations own the schema in a container; create_all is a local convenience.
+ENV AUTO_CREATE_TABLES=false
+
 EXPOSE 8000
 
+# The entrypoint applies migrations before the server accepts a request.
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
