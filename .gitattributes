@@ -1,0 +1,23 @@
+# Normalise line endings so a Windows checkout can't corrupt files that Linux
+# has to execute. Without this, git converts entrypoint.sh to CRLF on checkout,
+# the shebang becomes "#!/bin/sh\r", and the container dies with the very
+# unhelpful "exec ./entrypoint.sh: no such file or directory".
+* text=auto eol=lf
+
+# Files that MUST be LF regardless of anyone's core.autocrlf setting.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+alembic.ini text eol=lf
+.env.example text eol=lf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

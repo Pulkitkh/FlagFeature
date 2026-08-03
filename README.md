@@ -290,6 +290,28 @@ cd backend && python -m scripts.migrate
 Nothing needs to be dropped or recreated. `tests/test_migrations.py` covers
 both the legacy and half-upgraded shapes so this can't regress.
 
+#### If the backend container restart-loops with `exec ./entrypoint.sh: no such file or directory`
+
+The file is there — its line endings aren't. A checkout on Windows converts
+`entrypoint.sh` to CRLF, which makes the shebang `#!/bin/sh\r`: an interpreter
+that doesn't exist, reported as a missing file.
+
+`.gitattributes` now pins shell scripts to LF, and the Dockerfile strips any
+carriage returns during the build, so a fresh clone and rebuild fixes it:
+
+```bash
+git pull
+docker compose build --no-cache backend
+docker compose up -d
+```
+
+If you'd rather not re-clone, normalising the existing working tree does the
+same job:
+
+```bash
+git rm --cached -r . && git reset --hard
+```
+
 Redis is optional for this option — `/health` will just report it as
 `unavailable`, and evaluation falls back to computing results live instead
 of serving them from cache.
