@@ -185,6 +185,7 @@ Worth being straight about the limits, since it's an obvious question:
 
 | Page | What it does |
 |---|---|
+| **Landing** (`/`, public) | What the product does, and the way in to the sign-in screen |
 | **Flags** | Searchable/filterable flag table, create form, and the cleanup-suggestions panel |
 | **Flag detail** | Full configuration, per-environment resolution, targeting rule panel (user / group / percentage), evaluation test panel, evaluation-volume chart, and version history |
 | **Environments** | All environments, plus how a chosen flag resolves in each one |
@@ -196,8 +197,33 @@ The environment switcher in the top bar drives every page: targeting rules,
 group memberships, the analytics chart's environment scope, and the audit log's
 optional environment filter.
 
-Chart colours use a single validated hue (blue) against the light chart
-surface. Every chart is single-series, so identity never rests on colour.
+Every chart is single-series and uses one validated hue, so identity never
+rests on colour. The hue changes with the theme — the darker blue on light
+backgrounds, the lighter one on dark.
+
+### Theme and language
+
+Both preferences sit in the top bar, and on the landing and sign-in screens too,
+since someone who can't read English needs the language picker *before* signing
+in rather than after.
+
+- **Theme** — light, dark, or **System**, which keeps following the OS. Colours
+  are CSS custom properties swapped on `<html data-theme>`; the light palette is
+  byte-for-byte what it was before dark mode existed.
+- **Languages** — 46 of them: English, 16 spoken across India, and 29 more.
+  Searchable by either the language's own name or its English one. Arabic,
+  Urdu, Persian and Hebrew render right-to-left.
+
+The **shell** — navigation, landing page, sign-in screen, preference controls —
+is translated in every language. The deeper console screens (flag editor,
+targeting rules, audit diffs) stay English everywhere: they're dense with API
+field names and JSON, and translating them convincingly is a content job rather
+than a code one. Missing keys fall back to English, so a partially translated
+locale degrades into a readable mixed interface rather than a broken one.
+
+`cd frontend && npm run check:i18n` verifies the catalogue: no invented keys, no
+empty strings, no locale missing a shell key, and no drift between the RTL list
+and the copy hardcoded in the pre-paint script.
 
 ## Audit log (Milestone 3)
 

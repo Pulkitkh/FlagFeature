@@ -10,6 +10,31 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Runs before the first paint. React sets these attributes too, but only
+      // after hydration — without this the page flashes white on every load for
+      // anyone using the dark theme.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('flagforge.theme')
+          var dark =
+            stored === 'dark' ||
+            ((!stored || stored === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+
+          var language = localStorage.getItem('flagforge.language')
+          if (language) {
+            document.documentElement.lang = language
+            if (['ar', 'ur', 'fa', 'he'].indexOf(language) !== -1) {
+              document.documentElement.dir = 'rtl'
+            }
+          }
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light'
+        }
+      })()
+    </script>
   </head>
   <body class="bg-bg text-ink font-sans antialiased">
     <div id="root"></div>

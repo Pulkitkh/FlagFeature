@@ -3,6 +3,9 @@ import Sidebar from './components/Sidebar'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EnvironmentProvider } from './context/EnvironmentContext'
+import { LanguageProvider } from './context/LanguageContext'
+import { ThemeProvider } from './context/ThemeContext'
+import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import FlagsPage from './pages/FlagsPage'
 import FlagDetailPage from './pages/FlagDetailPage'
@@ -23,7 +26,6 @@ function Console() {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Routes>
-            <Route path="/" element={<Navigate to="/flags" replace />} />
             <Route path="/flags" element={<FlagsPage />} />
             <Route path="/flags/:key" element={<FlagDetailPage />} />
             <Route path="/environments" element={<EnvironmentsPage />} />
@@ -50,11 +52,12 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Public. The landing page is the front door and stays reachable when
+          signed in — it just points at the console instead of the login form. */}
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/login"
-        element={
-          isAuthenticated && !checking ? <Navigate to="/flags" replace /> : <LoginPage />
-        }
+        element={isAuthenticated && !checking ? <Navigate to="/flags" replace /> : <LoginPage />}
       />
       <Route
         path="*"
@@ -70,8 +73,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   )
 }

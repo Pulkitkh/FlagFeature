@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, KeyRound, LogOut, ShieldCheck, Users } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
 import { Badge, Button, Field, Input, Modal } from './ui'
 
@@ -14,6 +15,7 @@ function initials(user) {
 export default function UserMenu() {
   const navigate = useNavigate()
   const { user, isAdmin, signOut } = useAuth()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const ref = useRef(null)
@@ -64,7 +66,7 @@ export default function UserMenu() {
         {open && (
           <div
             role="menu"
-            className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-floating"
+            className="absolute end-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-floating"
           >
             <div className="border-b border-border px-3 py-3">
               <p className="truncate text-sm font-semibold text-ink">{user.name || 'Signed in'}</p>
@@ -87,7 +89,7 @@ export default function UserMenu() {
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surfaceMuted"
               >
                 <Users className="h-4 w-4 text-muted" />
-                Manage accounts
+                {t('navAccounts')}
               </button>
             )}
 
@@ -115,7 +117,7 @@ export default function UserMenu() {
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-bad transition-colors hover:bg-badSoft"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              {t('signOut')}
             </button>
           </div>
         )}

@@ -1,20 +1,34 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertCircle, Eye, EyeOff, Flag, Layers, LogIn, Percent, ShieldCheck } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Flag,
+  Layers,
+  LogIn,
+  Percent,
+  ShieldCheck,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
+import LanguageSwitcher from '../components/LanguageSwitcher'
+import ThemeToggle from '../components/ThemeToggle'
 import { Button, Card, Field, Input } from '../components/ui'
 
 const HIGHLIGHTS = [
-  { icon: Percent, title: 'Gradual rollouts', copy: 'Ship to 1%, then 50%, then everyone.' },
-  { icon: Layers, title: 'Per-environment control', copy: 'On in staging, off in production.' },
-  { icon: ShieldCheck, title: 'Full audit trail', copy: 'Every change, attributed and diffed.' },
+  { icon: Percent, titleKey: 'f1Title', copyKey: 'f1Copy' },
+  { icon: Layers, titleKey: 'f2Title', copyKey: 'f2Copy' },
+  { icon: ShieldCheck, titleKey: 'f3Title', copyKey: 'f3Copy' },
 ]
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signIn, isAuthenticated } = useAuth()
+  const t = useT()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -55,40 +69,37 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full">
       {/* Left: the pitch. Hidden on small screens, where the form is all that matters. */}
-      <aside className="hidden w-1/2 flex-col justify-between border-r border-border bg-surface p-12 lg:flex">
-        <div className="flex items-center gap-2.5">
+      <aside className="hidden w-1/2 flex-col justify-between border-e border-border bg-surface p-12 lg:flex">
+        <Link to="/" className="flex w-fit items-center gap-2.5">
           <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white">
             <Flag className="h-4 w-4" strokeWidth={2.5} />
-            <span className="signal-dot signal-dot--live absolute -right-0.5 -top-0.5 bg-good ring-2 ring-surfaceMuted" />
+            <span className="signal-dot signal-dot--live absolute -end-0.5 -top-0.5 bg-good ring-2 ring-surfaceMuted" />
           </span>
           <span>
             <span className="block font-display text-[15px] font-semibold leading-tight text-ink">
               FlagForge
             </span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-              Release console
+              {t('tagline')}
             </span>
           </span>
-        </div>
+        </Link>
 
         <div className="max-w-md">
           <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight text-ink">
-            Ship features without shipping a deploy.
+            {t('heroTitle')}
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted">
-            Create flags, target real users and groups, roll out gradually, and turn anything off
-            the moment it misbehaves.
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">{t('heroSubtitle')}</p>
 
           <ul className="mt-8 space-y-5">
-            {HIGHLIGHTS.map(({ icon: Icon, title, copy }) => (
-              <li key={title} className="flex gap-3">
+            {HIGHLIGHTS.map(({ icon: Icon, titleKey, copyKey }) => (
+              <li key={titleKey} className="flex gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-accent">
                   <Icon className="h-4 w-4" />
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold text-ink">{title}</span>
-                  <span className="block text-xs text-muted">{copy}</span>
+                  <span className="block text-sm font-semibold text-ink">{t(titleKey)}</span>
+                  <span className="block text-xs text-muted">{t(copyKey)}</span>
                 </span>
               </li>
             ))}
@@ -102,8 +113,23 @@ export default function LoginPage() {
       </aside>
 
       {/* Right: the form. */}
-      <main className="flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+      <main className="relative flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+        {/* Both preferences are reachable before signing in — someone who can't
+            read English needs the language picker on this screen, not inside. */}
+        <div className="absolute end-6 top-6 flex items-center gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
+
         <div className="w-full max-w-sm">
+          <Link
+            to="/"
+            className="mb-6 inline-flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-ink lg:hidden"
+          >
+            <ArrowLeft className="rtl-flip h-3.5 w-3.5" />
+            {t('backToHome')}
+          </Link>
+
           <div className="mb-8 lg:hidden">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-white">
               <Flag className="h-5 w-5" strokeWidth={2.5} />
@@ -111,11 +137,9 @@ export default function LoginPage() {
           </div>
 
           <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
-            Sign in to FlagForge
+            {t('loginTitle')}
           </h1>
-          <p className="mt-1.5 text-sm text-muted">
-            Every change you make is recorded against your account.
-          </p>
+          <p className="mt-1.5 text-sm text-muted">{t('loginSubtitle')}</p>
 
           {apiReachable === false && (
             <Card className="mt-6 border-bad/25 bg-badSoft">
@@ -130,7 +154,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <Field label="Email">
+            <Field label={t('email')}>
               <Input
                 type="email"
                 autoComplete="username"
@@ -142,7 +166,7 @@ export default function LoginPage() {
               />
             </Field>
 
-            <Field label="Password">
+            <Field label={t('password')}>
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
@@ -151,13 +175,13 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="pr-11"
+                  className="pe-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((shown) => !shown)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-hoverBg hover:text-ink"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-hoverBg hover:text-ink"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -171,7 +195,7 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" icon={LogIn} loading={submitting} className="w-full">
-              Sign in
+              {t('signIn')}
             </Button>
           </form>
 

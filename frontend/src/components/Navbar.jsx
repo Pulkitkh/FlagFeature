@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import EnvironmentSwitcher from './EnvironmentSwitcher'
+import LanguageSwitcher from './LanguageSwitcher'
+import ThemeToggle from './ThemeToggle'
 import UserMenu from './UserMenu'
 
 export default function Navbar({ title, breadcrumb }) {
@@ -21,7 +23,7 @@ export default function Navbar({ title, breadcrumb }) {
         <h1 className="truncate font-display text-base font-semibold text-ink">{title}</h1>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2">
         <div
           className="hidden items-center gap-1.5 rounded-md border border-border bg-surfaceMuted px-2.5 py-1.5 text-xs font-medium text-muted sm:flex"
           title={health === null ? 'Checking API status' : isOk ? 'API connected' : 'API unreachable'}
@@ -30,6 +32,8 @@ export default function Navbar({ title, breadcrumb }) {
           {health === null ? 'Checking…' : isOk ? 'API connected' : 'API unreachable'}
         </div>
         <EnvironmentSwitcher />
+        <LanguageSwitcher />
+        <ThemeToggle />
         <UserMenu />
       </div>
     </header>

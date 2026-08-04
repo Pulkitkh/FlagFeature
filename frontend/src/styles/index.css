@@ -2,27 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colours are "R G B" triples so Tailwind can apply opacity modifiers
+ * (bg-surface/60). The light values are exactly what the palette has always
+ * been — adding dark mode changed no light-mode colour.
+ */
 :root {
   color-scheme: light;
-  --bg-shell: #f0f1f4;
-  --text-ink: #13161c;
-  --text-muted: #5b6270;
-  --accent: #2454c7;
+
+  --bg: 240 241 244;
+  --surface: 255 255 255;
+  --surface-muted: 246 247 249;
+  --border: 221 224 229;
+  --border-strong: 198 202 209;
+  --ink: 19 22 28;
+  --muted: 91 98 112;
+  --accent: 36 84 199;
+  --accent-dark: 23 60 147;
+  --accent-soft: 233 239 252;
+  --good: 22 107 71;
+  --good-soft: 228 243 235;
+  --warn: 147 89 10;
+  --warn-soft: 251 239 218;
+  --bad: 166 41 31;
+  --bad-soft: 250 234 232;
+  --hover-bg: 235 237 241;
+
+  /* Shell decoration: the graph-paper grid and the wash behind it. */
+  --grid-line: 19 22 28;
+  --grid-alpha: 0.045;
+  --wash-alpha: 0.07;
+  --scrollbar-thumb: 205 210 217;
+  --scrollbar-thumb-hover: 179 185 195;
+
+  /* Shadows, at exactly the strengths the palette has always used. */
+  --shadow-color: 19 22 28;
+  --shadow-hairline: 0.06;
+  --shadow-soft-near: 0.04;
+  --shadow-soft-far: 0.12;
+  --shadow-card-near: 0.04;
+  --shadow-card-far: 0.14;
+  --shadow-floating: 0.22;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: 14 17 22;
+  --surface: 23 27 34;
+  --surface-muted: 29 34 43;
+  --border: 42 48 57;
+  --border-strong: 59 67 79;
+  --ink: 232 235 240;
+  --muted: 152 161 176;
+  /* Lifted so it stays legible on a dark surface. */
+  --accent: 91 141 239;
+  /* In light mode this is the darker hover; in dark it goes lighter instead. */
+  --accent-dark: 125 166 245;
+  --accent-soft: 22 36 60;
+  --good: 63 207 142;
+  --good-soft: 16 40 30;
+  --warn: 227 163 67;
+  --warn-soft: 42 33 19;
+  --bad: 242 119 107;
+  --bad-soft: 44 22 20;
+  --hover-bg: 34 40 49;
+
+  --grid-line: 226 232 240;
+  --grid-alpha: 0.035;
+  --wash-alpha: 0.14;
+  --scrollbar-thumb: 55 62 73;
+  --scrollbar-thumb-hover: 76 85 99;
+
+  /* Pure black, at higher alpha — a 6% shadow is invisible on a dark surface. */
+  --shadow-color: 0 0 0;
+  --shadow-hairline: 0.35;
+  --shadow-soft-near: 0.3;
+  --shadow-soft-far: 0.5;
+  --shadow-card-near: 0.3;
+  --shadow-card-far: 0.55;
+  --shadow-floating: 0.65;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
-  background: var(--bg-shell);
+  background: rgb(var(--bg));
 }
 
 body {
   min-width: 320px;
-  color: var(--text-ink);
+  color: rgb(var(--ink));
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--bg-shell);
+  background-color: rgb(var(--bg));
   background-image:
-    linear-gradient(rgba(19, 22, 28, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(19, 22, 28, 0.045) 1px, transparent 1px);
+    linear-gradient(rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px);
   background-size: 28px 28px;
   background-position: -1px -1px;
 }
@@ -33,7 +107,11 @@ body::before {
   inset: 0;
   content: '';
   pointer-events: none;
-  background-image: radial-gradient(ellipse 60rem 32rem at 50% -8%, rgba(36, 84, 199, 0.07), transparent 65%);
+  background-image: radial-gradient(
+    ellipse 60rem 32rem at 50% -8%,
+    rgb(var(--accent) / var(--wash-alpha)),
+    transparent 65%
+  );
 }
 
 /* Signature "signal" indicator — used for enabled/disabled/live states everywhere */
@@ -61,9 +139,19 @@ body::before {
   100% { transform: scale(2.1); opacity: 0; }
 }
 
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Visible keyboard focus everywhere, accessibility requirement */
 :focus-visible {
-  outline: 2px solid #2454c7;
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -73,14 +161,23 @@ body::before {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cdd2d9;
+  background: rgb(var(--scrollbar-thumb));
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b3b9c3;
+  background: rgb(var(--scrollbar-thumb-hover));
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/*
+ * Right-to-left languages (Arabic, Urdu, Persian, Hebrew). `dir` is set on
+ * <html> by the language provider; these flip the few places where a physical
+ * direction is baked in rather than a logical one.
+ */
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -11,7 +11,7 @@ cd frontend && npm install && npm run dev   # dashboard on :5173
 ```
 
 Have three terminals ready: the API, the dashboard, and a spare for `curl`.
-Open the dashboard at `http://localhost:5173` and the API docs at
+Open the landing page at `http://localhost:5173` and the API docs at
 `http://localhost:8000/docs`.
 
 Start from an empty database — the story is better when the audience watches
@@ -21,7 +21,18 @@ the data appear.
 
 ## Signing in (≈1 min)
 
-**0. The login screen.** Open the dashboard and you land on it — nothing is
+**0a. The landing page.** Open the dashboard and this is the front door. Two
+things worth flipping before you go in, because they set the tone: the theme
+control (light / dark / follow the system) and the globe menu — 46 languages,
+searchable by their own name or their English one. Switch to **हिन्दी** or
+**العربية** and let the page redraw; Arabic mirrors the whole layout
+right-to-left. Switch back to English before continuing.
+
+Say: *"The shell is translated everywhere. The deeper screens are English on
+purpose — they're full of API field names, and mistranslating those would be
+worse than leaving them alone."*
+
+**0b. The login screen.** Click **Get started**. Nothing past this point is
 reachable without an account. Sign in as `admin@flagforge.local` /
 `admin12345`.
 
