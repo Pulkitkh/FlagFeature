@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, FileDiff, RotateCcw, Search } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import AuditDiffModal from '../components/AuditDiffModal'
+import AuditDiffModal, { ACTION_KEY, ENTITY_KEY } from '../components/AuditDiffModal'
+import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
 import { useEnvironment } from '../context/EnvironmentContext'
 import {
@@ -28,26 +29,16 @@ const ACTION_TONE = {
   deleted: 'bad',
 }
 
-const ACTION_OPTIONS = [
-  { value: '', label: 'All actions' },
-  { value: 'created', label: 'Created' },
-  { value: 'updated', label: 'Updated' },
-  { value: 'enabled', label: 'Enabled' },
-  { value: 'disabled', label: 'Disabled' },
-  { value: 'toggled', label: 'Toggled' },
-  { value: 'deleted', label: 'Deleted' },
+// Values are the API's enum strings and never translate; only the labels do.
+const ACTION_VALUES = ['created', 'updated', 'enabled', 'disabled', 'toggled', 'deleted']
+const ENTITY_VALUES = [
+  'flag',
+  'targeting_rule',
+  'environment_override',
+  'user_group_membership',
+  'environment',
+  'user',
 ]
-
-const ENTITY_OPTIONS = [
-  { value: '', label: 'All types' },
-  { value: 'flag', label: 'Flag' },
-  { value: 'targeting_rule', label: 'Targeting rule' },
-  { value: 'environment_override', label: 'Environment override' },
-  { value: 'user_group_membership', label: 'Group membership' },
-  { value: 'environment', label: 'Environment' },
-]
-
-const COLUMNS = ['Timestamp', 'Actor', 'Flag / entity', 'Action', 'Change', '']
 
 const EMPTY_FILTERS = {
   actor: '',
@@ -60,6 +51,7 @@ const EMPTY_FILTERS = {
 
 export default function AuditLogPage() {
   const { selected: selectedEnv, environments } = useEnvironment()
+  const t = useT()
 
   const [entries, setEntries] = useState([])
   const [actors, setActors] = useState([])
@@ -97,9 +89,37 @@ export default function AuditLogPage() {
   }, [])
 
   const actorOptions = useMemo(
-    () => [{ value: '', label: 'All actors' }, ...actors.map((actor) => ({ value: actor, label: actor }))],
-    [actors]
+    () => [
+      { value: '', label: t('allActors') },
+      ...actors.map((actor) => ({ value: actor, label: actor })),
+    ],
+    [actors, t]
   )
+
+  const actionOptions = useMemo(
+    () => [
+      { value: '', label: t('allActions') },
+      ...ACTION_VALUES.map((value) => ({ value, label: t(ACTION_KEY[value]) })),
+    ],
+    [t]
+  )
+
+  const entityOptions = useMemo(
+    () => [
+      { value: '', label: t('allTypes') },
+      ...ENTITY_VALUES.map((value) => ({ value, label: t(ENTITY_KEY[value]) })),
+    ],
+    [t]
+  )
+
+  const columns = [
+    t('colTimestamp'),
+    t('fieldActor'),
+    t('colEntity'),
+    t('fieldAction'),
+    t('colChange'),
+    { label: '', align: 'end' },
+  ]
 
   const filtersActive = useMemo(
     () => Object.values(filters).some(Boolean) || scopeToEnvironment,
@@ -117,23 +137,23 @@ export default function AuditLogPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="Audit Log" breadcrumb="FlagForge" />
+      <Navbar title={t('auditTitle')} breadcrumb="FlagForge" />
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
-            title="Audit log"
-            description="Every create, update, enable, disable, and targeting change — who did it, when, and exactly what moved."
+            title={t('auditTitle')}
+            description={t('auditSubtitle')}
             action={
               <Button variant="secondary" icon={RotateCcw} onClick={load} loading={loading}>
-                Refresh
+                {t('refresh')}
               </Button>
             }
           />
 
           <Card className="mb-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Field label="Actor">
+              <Field label={t('fieldActor')}>
                 <Dropdown
                   value={filters.actor}
                   onChange={(value) => setFilter('actor', value)}
@@ -141,12 +161,12 @@ export default function AuditLogPage() {
                 />
               </Field>
 
-              <Field label="Flag / entity key">
+              <Field label={t('entityKeyLabel')}>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                   <Input
                     mono
-                    className="pl-9"
+                    className="ps-9"
                     value={filters.entity_key}
                     onChange={(e) => setFilter('entity_key', e.target.value)}
                     placeholder="new-checkout-flow"
@@ -154,23 +174,23 @@ export default function AuditLogPage() {
                 </div>
               </Field>
 
-              <Field label="Action">
+              <Field label={t('fieldAction')}>
                 <Dropdown
                   value={filters.action}
                   onChange={(value) => setFilter('action', value)}
-                  options={ACTION_OPTIONS}
+                  options={actionOptions}
                 />
               </Field>
 
-              <Field label="Entity type">
+              <Field label={t('entityTypeLabel')}>
                 <Dropdown
                   value={filters.entity_type}
                   onChange={(value) => setFilter('entity_type', value)}
-                  options={ENTITY_OPTIONS}
+                  options={entityOptions}
                 />
               </Field>
 
-              <Field label="From">
+              <Field label={t('dateFrom')}>
                 <Input
                   type="date"
                   value={filters.start}
@@ -178,7 +198,7 @@ export default function AuditLogPage() {
                 />
               </Field>
 
-              <Field label="To">
+              <Field label={t('dateTo')}>
                 <Input
                   type="date"
                   value={filters.end}
@@ -195,9 +215,11 @@ export default function AuditLogPage() {
                     className="h-4 w-4 rounded border-border accent-accent"
                   />
                   <span>
-                    Only {selectedEnv?.name || 'current environment'}
+                    {t('onlyEnvironment', {
+                      environment: selectedEnv?.name || t('currentEnvironment'),
+                    })}
                     <span className="block text-xs text-muted">
-                      {environments.length} environment{environments.length === 1 ? '' : 's'} tracked
+                      {t('environmentsTracked', { count: environments.length })}
                     </span>
                   </span>
                 </label>
@@ -206,7 +228,7 @@ export default function AuditLogPage() {
               <div className="flex items-end justify-end">
                 {filtersActive && (
                   <Button variant="ghost" onClick={resetFilters}>
-                    Clear filters
+                    {t('clearFilters')}
                   </Button>
                 )}
               </div>
@@ -216,20 +238,16 @@ export default function AuditLogPage() {
           {loading ? (
             <TableSkeleton rows={6} cols={5} />
           ) : error ? (
-            <EmptyState icon={Activity} title="Couldn't load activity" description={error} />
+            <EmptyState icon={Activity} title={t('auditLoadError')} description={error} />
           ) : entries.length === 0 ? (
             <EmptyState
               icon={Activity}
-              title={filtersActive ? 'No entries match these filters' : 'Nothing logged yet'}
-              description={
-                filtersActive
-                  ? 'Try widening the date range or clearing a filter.'
-                  : 'Every flag create, update, and toggle will show up here.'
-              }
+              title={filtersActive ? t('auditNoMatches') : t('auditNothingLogged')}
+              description={filtersActive ? t('auditWidenRange') : t('auditWillAppear')}
               action={
                 filtersActive && (
                   <Button variant="secondary" onClick={resetFilters}>
-                    Clear filters
+                    {t('clearFilters')}
                   </Button>
                 )
               }
@@ -237,11 +255,12 @@ export default function AuditLogPage() {
           ) : (
             <>
               <p className="mb-3 text-xs text-muted">
-                {entries.length} entr{entries.length === 1 ? 'y' : 'ies'}
-                {filtersActive ? ' matching your filters' : ''}
+                {filtersActive
+                  ? t('auditEntryCountFiltered', { count: entries.length })
+                  : t('auditEntryCount', { count: entries.length })}
               </p>
 
-              <Table columns={COLUMNS}>
+              <Table columns={columns}>
                 {entries.map((entry) => (
                   <Row key={entry.id}>
                     <Cell className="whitespace-nowrap font-mono text-xs text-muted">
@@ -253,19 +272,23 @@ export default function AuditLogPage() {
                         {entry.entity_key || `${entry.entity_type}#${entry.entity_id}`}
                       </span>
                       <span className="text-xs text-muted">
-                        {entry.entity_type}
+                        {ENTITY_KEY[entry.entity_type]
+                          ? t(ENTITY_KEY[entry.entity_type])
+                          : entry.entity_type}
                         {entry.environment_key ? ` · ${entry.environment_key}` : ''}
                       </span>
                     </Cell>
                     <Cell>
-                      <Badge tone={ACTION_TONE[entry.action] || 'neutral'}>{entry.action}</Badge>
+                      <Badge tone={ACTION_TONE[entry.action] || 'neutral'}>
+                        {ACTION_KEY[entry.action] ? t(ACTION_KEY[entry.action]) : entry.action}
+                      </Badge>
                     </Cell>
                     <Cell className="max-w-xs">
                       <span className="block truncate font-mono text-xs text-muted" title={entry.summary}>
                         {entry.summary || '—'}
                       </span>
                     </Cell>
-                    <Cell className="text-right">
+                    <Cell className="text-end">
                       <Button
                         size="sm"
                         variant="secondary"
@@ -273,7 +296,7 @@ export default function AuditLogPage() {
                         className="whitespace-nowrap"
                         onClick={() => setDiffEntry(entry)}
                       >
-                        View diff
+                        {t('viewDiff')}
                       </Button>
                     </Cell>
                   </Row>

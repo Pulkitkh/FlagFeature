@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 
 /**
  * Gate for every page behind the login. While the stored token is being
@@ -10,11 +11,12 @@ import { useAuth } from '../context/AuthContext'
 export default function RequireAuth({ children, adminOnly = false }) {
   const { isAuthenticated, isAdmin, checking } = useAuth()
   const location = useLocation()
+  const t = useT()
 
   if (checking) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted" aria-label="Checking your session" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted" aria-label={t('checkingSession')} />
       </div>
     )
   }

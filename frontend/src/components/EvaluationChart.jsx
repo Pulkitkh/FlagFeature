@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { BarChart3 } from 'lucide-react'
 import { api } from '../api/client'
-import { useLanguage } from '../context/LanguageContext'
+import { useLanguage, useT } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
 import { Badge, Button, Card } from './ui'
 
@@ -27,8 +27,8 @@ const CHART_COLORS = {
 }
 
 const RANGES = [
-  { days: 7, label: '7 days' },
-  { days: 30, label: '30 days' },
+  { days: 7, labelKey: 'chart7Days' },
+  { days: 30, labelKey: 'chart30Days' },
 ]
 
 function formatDay(iso, days, locale) {
@@ -38,9 +38,11 @@ function formatDay(iso, days, locale) {
     : date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })
 }
 
-function ChartTooltip({ active, payload, label, locale }) {
+// Recharts clones this element with the hover props, so `locale` and `t` are
+// passed in rather than read from context — the clone happens outside the
+// provider's render tree.
+function ChartTooltip({ active, payload, label, locale, t }) {
   if (!active || !payload?.length) return null
-  const value = payload[0].value
   return (
     <div className="rounded-lg border border-border bg-surface px-3 py-2 shadow-floating">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
@@ -50,8 +52,8 @@ function ChartTooltip({ active, payload, label, locale }) {
           day: 'numeric',
         })}
       </p>
-      <p className="mt-1 font-mono text-sm font-semibold text-ink">
-        {value} evaluation{value === 1 ? '' : 's'}
+      <p className="mt-1 text-sm font-semibold tabular-nums text-ink">
+        {t('chartTooltip', { count: payload[0].value })}
       </p>
     </div>
   )
@@ -64,6 +66,7 @@ function ChartTooltip({ active, payload, label, locale }) {
 export default function EvaluationChart({ flagKey, environmentKey, environmentName }) {
   const { theme } = useTheme()
   const { language } = useLanguage()
+  const t = useT()
   const colors = CHART_COLORS[theme] || CHART_COLORS.light
   const [days, setDays] = useState(7)
   const [scoped, setScoped] = useState(false)
@@ -108,10 +111,12 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
             <BarChart3 className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-ink">Evaluation volume</h2>
+            <h2 className="text-sm font-semibold text-ink">{t('evaluationVolume')}</h2>
             <p className="text-xs text-muted">
-              {scoped ? `${environmentName || environmentKey} only` : 'All environments'} · counted
-              on every <code className="font-mono">/evaluate</code> call
+              {scoped
+                ? t('chartOnlyEnvironment', { environment: environmentName || environmentKey })
+                : t('chartAllEnvironments')}{' '}
+              · {t('chartCountedOn')}
             </p>
           </div>
         </div>
@@ -119,7 +124,7 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
         <div className="flex flex-wrap items-center gap-2">
           {environmentKey && (
             <Button size="sm" variant={scoped ? 'primary' : 'secondary'} onClick={() => setScoped((s) => !s)}>
-              {scoped ? environmentName || environmentKey : 'All envs'}
+              {scoped ? environmentName || environmentKey : t('chartAllEnvs')}
             </Button>
           )}
           {RANGES.map((range) => (
@@ -129,7 +134,7 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
               variant={days === range.days ? 'primary' : 'secondary'}
               onClick={() => setDays(range.days)}
             >
-              {range.label}
+              {t(range.labelKey)}
             </Button>
           ))}
         </div>
@@ -143,13 +148,10 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
         ) : (
           <>
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Badge tone="accent">{data.total} total</Badge>
-              <Badge tone="neutral">peak {busiest}/day</Badge>
+              <Badge tone="accent">{t('chartTotal', { count: data.total })}</Badge>
+              <Badge tone="neutral">{t('chartPeak', { count: busiest })}</Badge>
               {data.total === 0 && (
-                <span className="text-xs text-muted">
-                  No evaluations recorded yet — call <code className="font-mono">POST /evaluate</code>{' '}
-                  or use the test panel below.
-                </span>
+                <span className="text-xs text-muted">{t('chartNoData')}</span>
               )}
             </div>
 
@@ -175,7 +177,7 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
                   />
                   <Tooltip
                     cursor={{ fill: colors.grid, fillOpacity: 0.5 }}
-                    content={<ChartTooltip locale={language} />}
+                    content={<ChartTooltip locale={language} t={t} />}
                   />
                   {/* Rounded top corners, square at the baseline. */}
                   <Bar dataKey="evaluations" fill={colors.series} radius={[4, 4, 0, 0]} maxBarSize={38} />

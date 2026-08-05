@@ -1,11 +1,30 @@
 import { ArrowRight } from 'lucide-react'
+import { useT } from '../context/LanguageContext'
 import { Badge, Modal } from './ui'
 
-function formatValue(value) {
+export const ACTION_KEY = {
+  created: 'actionCreated',
+  updated: 'actionUpdated',
+  enabled: 'actionEnabled',
+  disabled: 'actionDisabled',
+  toggled: 'actionToggled',
+  deleted: 'actionDeleted',
+}
+
+export const ENTITY_KEY = {
+  flag: 'entityFlag',
+  targeting_rule: 'entityTargetingRule',
+  environment_override: 'entityEnvironmentOverride',
+  user_group_membership: 'entityGroupMembership',
+  environment: 'entityEnvironment',
+  user: 'entityUser',
+}
+
+function formatValue(value, emptyLabel) {
   if (value === undefined || value === null) return '—'
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '(empty)'
+  if (Array.isArray(value)) return value.length ? value.join(', ') : emptyLabel
   if (typeof value === 'object') return JSON.stringify(value, null, 2)
-  if (value === '') return '(empty)'
+  if (value === '') return emptyLabel
   return String(value)
 }
 
@@ -14,6 +33,7 @@ function formatValue(value) {
  * raw JSON either side for anything the field view can't convey.
  */
 export default function AuditDiffModal({ entry, onClose }) {
+  const t = useT()
   if (!entry) return null
 
   const diff = entry.diff || {}
@@ -23,22 +43,27 @@ export default function AuditDiffModal({ entry, onClose }) {
     <Modal
       open
       onClose={onClose}
-      title={`${entry.action} ${entry.entity_type}`}
-      description={`${entry.entity_key || entry.entity_id} · by ${entry.actor} · ${new Date(
-        entry.timestamp
-      ).toLocaleString()}`}
+      title={t('diffTitle', {
+        action: t(ACTION_KEY[entry.action] || 'fieldAction'),
+        entity: t(ENTITY_KEY[entry.entity_type] || 'entityTypeLabel'),
+      })}
+      description={t('diffSubtitle', {
+        key: entry.entity_key || entry.entity_id,
+        actor: entry.actor,
+        date: new Date(entry.timestamp).toLocaleString(),
+      })}
       className="max-w-2xl"
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="accent">{entry.entity_type}</Badge>
+          <Badge tone="accent">{t(ENTITY_KEY[entry.entity_type] || 'entityTypeLabel')}</Badge>
           {entry.environment_key && <Badge tone="neutral">{entry.environment_key}</Badge>}
-          <Badge tone="neutral">{fields.length} field{fields.length === 1 ? '' : 's'} changed</Badge>
+          <Badge tone="neutral">{t('diffFieldsChanged', { count: fields.length })}</Badge>
         </div>
 
         {fields.length === 0 ? (
           <p className="rounded-lg border border-border bg-surfaceMuted px-4 py-3 text-sm text-muted">
-            This entry recorded no field-level changes.
+            {t('diffNoFieldChanges')}
           </p>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border">
@@ -46,14 +71,14 @@ export default function AuditDiffModal({ entry, onClose }) {
               <thead className="border-b border-border bg-surfaceMuted">
                 <tr>
                   <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                    Field
+                    {t('fieldField')}
                   </th>
                   <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                    Before
+                    {t('fieldBefore')}
                   </th>
                   <th className="w-8" />
                   <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                    After
+                    {t('fieldAfter')}
                   </th>
                 </tr>
               </thead>
@@ -63,7 +88,7 @@ export default function AuditDiffModal({ entry, onClose }) {
                     <td className="px-4 py-3 font-mono text-xs font-semibold text-ink">{field}</td>
                     <td className="px-4 py-3">
                       <pre className="whitespace-pre-wrap break-words font-mono text-xs text-bad">
-                        {formatValue(diff[field].before)}
+                        {formatValue(diff[field].before, t('empty'))}
                       </pre>
                     </td>
                     <td className="px-1 py-3 text-center">
@@ -71,7 +96,7 @@ export default function AuditDiffModal({ entry, onClose }) {
                     </td>
                     <td className="px-4 py-3">
                       <pre className="whitespace-pre-wrap break-words font-mono text-xs text-good">
-                        {formatValue(diff[field].after)}
+                        {formatValue(diff[field].after, t('empty'))}
                       </pre>
                     </td>
                   </tr>
@@ -83,12 +108,12 @@ export default function AuditDiffModal({ entry, onClose }) {
 
         <details className="rounded-lg border border-border bg-surfaceMuted">
           <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-ink">
-            Raw JSON
+            {t('diffRawJson')}
           </summary>
           <div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2">
             <div className="min-w-0">
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                Before
+                {t('fieldBefore')}
               </p>
               <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">
                 {JSON.stringify(entry.before_state ?? null, null, 2)}
@@ -96,7 +121,7 @@ export default function AuditDiffModal({ entry, onClose }) {
             </div>
             <div className="min-w-0">
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                After
+                {t('fieldAfter')}
               </p>
               <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">
                 {JSON.stringify(entry.after_state ?? null, null, 2)}

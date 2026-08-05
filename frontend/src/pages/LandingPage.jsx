@@ -110,7 +110,7 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-ink shadow-hairline transition-colors hover:border-borderStrong hover:bg-surfaceMuted"
               >
                 <Terminal className="h-4 w-4 text-muted" />
-                API reference
+                {t('apiReference')}
               </a>
             </div>
           </div>
@@ -176,10 +176,8 @@ export default function LandingPage() {
 
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-content flex-col gap-2 px-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>FlagForge — FastAPI, PostgreSQL, and Redis behind a React console.</p>
-          <p className="font-mono">
-            Evaluation on <span className="text-accentDark">POST /evaluate</span>, cached in Redis.
-          </p>
+          <p>{t('footerStack')}</p>
+          <p>{t('footerEval')}</p>
         </div>
       </footer>
     </div>

@@ -69,11 +69,11 @@ export default function UserMenu() {
             className="absolute end-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-floating"
           >
             <div className="border-b border-border px-3 py-3">
-              <p className="truncate text-sm font-semibold text-ink">{user.name || 'Signed in'}</p>
+              <p className="truncate text-sm font-semibold text-ink">{user.name || t('signedIn')}</p>
               <p className="truncate text-xs text-muted">{user.email}</p>
               <div className="mt-2">
                 <Badge tone={isAdmin ? 'accent' : 'neutral'} icon={isAdmin ? ShieldCheck : undefined}>
-                  {isAdmin ? 'Admin' : 'Viewer — read only'}
+                  {isAdmin ? t('roleAdminBadge') : t('roleViewerBadge')}
                 </Badge>
               </div>
             </div>
@@ -103,7 +103,7 @@ export default function UserMenu() {
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surfaceMuted"
             >
               <KeyRound className="h-4 w-4 text-muted" />
-              Change password
+              {t('changePassword')}
             </button>
 
             <button
@@ -131,6 +131,7 @@ export default function UserMenu() {
 }
 
 function ChangePasswordDialog({ onClose }) {
+  const t = useT()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -143,11 +144,11 @@ function ChangePasswordDialog({ onClose }) {
 
     // Caught here rather than at the API, so the message points at the field.
     if (newPassword !== confirmPassword) {
-      setError("The new passwords don't match.")
+      setError(t('passwordsDoNotMatch'))
       return
     }
     if (newPassword.length < 8) {
-      setError('Use at least 8 characters.')
+      setError(t('passwordTooShort'))
       return
     }
 
@@ -167,21 +168,21 @@ function ChangePasswordDialog({ onClose }) {
     <Modal
       open
       onClose={onClose}
-      title="Change password"
-      description="You'll stay signed in on this device."
+      title={t('changePassword')}
+      description={t('changePasswordHint')}
     >
       {done ? (
         <div className="space-y-4">
           <p className="rounded-lg border border-good/25 bg-goodSoft px-3 py-2.5 text-sm text-good">
-            Password changed. Use the new one next time you sign in.
+            {t('passwordChanged')}
           </p>
           <div className="flex justify-end">
-            <Button onClick={onClose}>Done</Button>
+            <Button onClick={onClose}>{t('done')}</Button>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Current password">
+          <Field label={t('currentPassword')}>
             <Input
               type="password"
               autoComplete="current-password"
@@ -190,7 +191,7 @@ function ChangePasswordDialog({ onClose }) {
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
           </Field>
-          <Field label="New password" hint="At least 8 characters.">
+          <Field label={t('newPassword')} hint={t('passwordMinHint')}>
             <Input
               type="password"
               autoComplete="new-password"
@@ -199,7 +200,7 @@ function ChangePasswordDialog({ onClose }) {
               onChange={(e) => setNewPassword(e.target.value)}
             />
           </Field>
-          <Field label="Confirm new password">
+          <Field label={t('confirmNewPassword')}>
             <Input
               type="password"
               autoComplete="new-password"
@@ -213,10 +214,10 @@ function ChangePasswordDialog({ onClose }) {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" loading={saving}>
-              Change password
+              {t('changePassword')}
             </Button>
           </div>
         </form>

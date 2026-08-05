@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Users, Plus, Trash2, Layers } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
+import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
 import { PageHeader, StatCard, Card, Badge, Button, Field, Input, Textarea, Dropdown } from '../components/ui'
 
@@ -9,6 +10,7 @@ const ENV_DOT_COLOR = { production: 'bg-bad', staging: 'bg-warn', development: '
 
 export default function GroupsPage() {
   const { environments, selected } = useEnvironment()
+  const t = useT()
   const [selectedEnvKey, setSelectedEnvKey] = useState(selected?.key || '')
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(false)
@@ -99,27 +101,32 @@ export default function GroupsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="User groups" breadcrumb="FlagForge" />
+      <Navbar title={t('groupsTitle')} breadcrumb="FlagForge" />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
-            title="User groups"
-            description="Create group memberships for the current environment and target them from flag rules."
+            title={t('groupsTitle')}
+            description={t('groupsSubtitle')}
           />
 
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard label="Environment" value={selectedEnv?.name || '—'} icon={Layers} tone="accent" />
-            <StatCard label="Groups" value={groups.length} icon={Users} tone="good" />
-            <StatCard label="Unique users" value={totalUsers} icon={Users} tone="neutral" />
+            <StatCard
+              label={t('fieldEnvironment')}
+              value={selectedEnv?.name || '—'}
+              icon={Layers}
+              tone="accent"
+            />
+            <StatCard label={t('statGroups')} value={groups.length} icon={Users} tone="good" />
+            <StatCard label={t('statUniqueUsers')} value={totalUsers} icon={Users} tone="neutral" />
           </div>
 
           <Card className="mb-6">
             <div className="grid gap-4 md:grid-cols-[280px_auto] md:items-end">
-              <Field label="Environment">
+              <Field label={t('fieldEnvironment')}>
                 <Dropdown
                   value={selectedEnvKey}
                   onChange={setSelectedEnvKey}
-                  placeholder="Choose an environment"
+                  placeholder={t('chooseEnvironment')}
                   options={environments.map((env) => ({ value: env.key, label: env.name, meta: env }))}
                   renderOption={(option) => (
                     <span className="flex items-center gap-2">
@@ -135,9 +142,7 @@ export default function GroupsPage() {
                   )}
                 />
               </Field>
-              <p className="text-xs text-muted">
-                Group memberships are scoped per environment — switch above to manage another one.
-              </p>
+              <p className="text-xs text-muted">{t('groupsScopedHint')}</p>
             </div>
           </Card>
 
@@ -148,15 +153,15 @@ export default function GroupsPage() {
                   <Users className="h-4.5 w-4.5" />
                 </span>
                 <div>
-                  <h2 className="text-sm font-semibold text-ink">Create group membership</h2>
-                  <p className="text-xs text-muted">Add one group and many user IDs at once.</p>
+                  <h2 className="text-sm font-semibold text-ink">{t('createGroupTitle')}</h2>
+                  <p className="text-xs text-muted">{t('createGroupHint')}</p>
                 </div>
               </div>
               <form onSubmit={handleSave} className="space-y-4">
-                <Field label="Group key">
+                <Field label={t('groupKey')}>
                   <Input mono value={groupKey} onChange={(e) => setGroupKey(e.target.value)} placeholder="beta_users" />
                 </Field>
-                <Field label="User IDs" hint="Comma or newline separated">
+                <Field label={t('userIds')} hint={t('userIdsHint')}>
                   <Textarea
                     rows={5}
                     value={userIdsInput}
@@ -166,7 +171,7 @@ export default function GroupsPage() {
                 </Field>
                 {error && <p className="text-sm text-bad">{error}</p>}
                 <Button type="submit" loading={saving} icon={Plus} className="w-full sm:w-auto">
-                  Save group
+                  {t('saveGroup')}
                 </Button>
               </form>
             </Card>
@@ -178,17 +183,19 @@ export default function GroupsPage() {
                     <Layers className="h-4.5 w-4.5" />
                   </span>
                   <div>
-                    <h2 className="text-sm font-semibold text-ink">Existing groups</h2>
-                    <p className="text-xs text-muted">Members currently stored for this environment.</p>
+                    <h2 className="text-sm font-semibold text-ink">{t('existingGroups')}</h2>
+                    <p className="text-xs text-muted">{t('existingGroupsHint')}</p>
                   </div>
                 </div>
-                <Badge tone="good" dot live>{groups.length} groups</Badge>
+                <Badge tone="good" dot live>
+                  {t('groupCount', { count: groups.length })}
+                </Badge>
               </div>
               <div className="p-4">
                 {loading ? (
                   <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
                 ) : groups.length === 0 ? (
-                  <p className="text-sm text-muted">No groups yet.</p>
+                  <p className="text-sm text-muted">{t('noGroupsYet')}</p>
                 ) : (
                   <div className="space-y-3">
                     {groups.map((group) => (
@@ -196,19 +203,21 @@ export default function GroupsPage() {
                         key={group.group_key}
                         className="relative overflow-hidden rounded-xl border border-border bg-surfaceMuted p-4"
                       >
-                        <span className="absolute inset-y-0 left-0 w-1 bg-good" />
-                        <div className="mb-2.5 flex items-center justify-between pl-2">
+                        <span className="absolute inset-y-0 start-0 w-1 bg-good" />
+                        <div className="mb-2.5 flex items-center justify-between ps-2">
                           <p className="font-mono text-sm font-semibold text-ink">{group.group_key}</p>
-                          <Badge tone="accent">{group.user_ids.length} users</Badge>
+                          <Badge tone="accent">
+                            {t('userCount', { count: group.user_ids.length })}
+                          </Badge>
                         </div>
-                        <div className="flex flex-wrap gap-2 pl-2">
+                        <div className="flex flex-wrap gap-2 ps-2">
                           {group.user_ids.map((userId) => (
                             <button
                               key={userId}
                               type="button"
                               onClick={() => handleRemove(group.group_key, userId)}
                               className="group inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-xs text-ink transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
-                              title="Remove from group"
+                              title={t('removeFromGroup')}
                             >
                               {userId}
                               <Trash2 className="h-3 w-3 opacity-50 group-hover:opacity-100" />

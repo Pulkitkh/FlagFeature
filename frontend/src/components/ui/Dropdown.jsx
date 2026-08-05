@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
+import { useT } from '../../context/LanguageContext'
 
 /**
  * A styled single-select dropdown that replaces the native <select>, whose
@@ -11,14 +12,17 @@ export default function Dropdown({
   value,
   onChange,
   options,
-  placeholder = 'Select…',
+  placeholder,
   renderOption,
   renderValue,
   className = '',
   mono = false,
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  // Falls back to the translated "Select…" when no caller-specific hint is given.
+  const placeholderText = placeholder ?? t('selectPlaceholder')
 
   useEffect(() => {
     function close(e) {
@@ -48,7 +52,7 @@ export default function Dropdown({
         }`}
       >
         <span className={`truncate ${mono ? 'font-mono' : ''} ${selected ? 'text-ink' : 'text-muted'}`}>
-          {selected ? (renderValue ? renderValue(selected) : selected.label) : placeholder}
+          {selected ? (renderValue ? renderValue(selected) : selected.label) : placeholderText}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -56,7 +60,7 @@ export default function Dropdown({
       {open && (
         <div className="absolute left-0 right-0 z-20 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-floating">
           {options.length === 0 && (
-            <div className="px-3 py-2.5 text-sm text-muted">No options</div>
+            <div className="px-3 py-2.5 text-sm text-muted">{t('noOptions')}</div>
           )}
           {options.map((option) => {
             const isSelected = option.value === value

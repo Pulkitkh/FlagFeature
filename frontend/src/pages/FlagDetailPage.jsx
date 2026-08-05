@@ -6,12 +6,14 @@ import FlagForm from '../components/FlagForm'
 import EvaluationChart from '../components/EvaluationChart'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
+import { useT } from '../context/LanguageContext'
 import { Card, Badge, Button, Section, Field, Input, Textarea } from '../components/ui'
 
 export default function FlagDetailPage() {
   const { key } = useParams()
   const navigate = useNavigate()
   const { selected: selectedEnv } = useEnvironment()
+  const t = useT()
 
   const [flag, setFlag] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -126,7 +128,7 @@ export default function FlagDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete flag "${key}"? This can't be undone.`)) return
+    if (!confirm(t('deleteFlagConfirm', { key }))) return
     await api.deleteFlag(key)
     navigate('/flags')
   }
@@ -216,8 +218,8 @@ export default function FlagDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
-        <div className="p-6 text-sm text-muted">Loading…</div>
+        <Navbar title={t('flagDetails')} breadcrumb="FlagForge / Flags" />
+        <div className="p-6 text-sm text-muted">{t('loading')}</div>
       </div>
     )
   }
@@ -225,10 +227,10 @@ export default function FlagDetailPage() {
   if (error || !flag) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar title="Flag details" breadcrumb="FlagForge / Flags" />
+        <Navbar title={t('flagDetails')} breadcrumb="FlagForge / Flags" />
         <div className="p-6">
           <Card className="border-bad/20 bg-badSoft text-sm text-bad">
-            {error || 'Flag not found'}
+            {error || t('flagNotFound')}
           </Card>
         </div>
       </div>
@@ -245,8 +247,8 @@ export default function FlagDetailPage() {
             onClick={() => navigate('/flags')}
             className="mb-4 flex items-center gap-1.5 text-sm text-muted hover:text-ink transition-colors"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to flags
+            <ArrowLeft className="rtl-flip h-3.5 w-3.5" />
+            {t('backToFlags')}
           </button>
 
           <div className="mb-6 flex items-start justify-between">
@@ -254,42 +256,51 @@ export default function FlagDetailPage() {
               <div className="flex items-center gap-2">
                 <h1 className="font-mono text-xl font-semibold text-ink">{flag.key}</h1>
                 <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
-                  {flag.enabled ? 'Enabled' : 'Disabled'}
+                  {flag.enabled ? t('enabled') : t('disabled')}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-muted">{flag.description || 'No description'}</p>
+              <p className="mt-1 text-sm text-muted">{flag.description || t('noDescription')}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" icon={Pencil} onClick={() => setShowEdit(true)}>
-                Edit
+                {t('edit')}
               </Button>
               <Button variant="danger" icon={Trash2} onClick={handleDelete}>
-                Delete
+                {t('delete')}
               </Button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* General information */}
-            <Section title="General information" className="lg:col-span-2 mb-0">
+            <Section title={t('generalInformation')} className="lg:col-span-2 mb-0">
               <Card>
                 <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3">
-                  <Detail label="Type" value={flag.type} mono />
-                  <Detail label="Default value" value={JSON.stringify(flag.default_value)} mono />
+                  <Detail label={t('fieldType')} value={flag.type} mono />
                   <Detail
-                    label="Global status"
-                    value={flag.enabled ? 'Enabled' : 'Disabled'}
+                    label={t('defaultValue')}
+                    value={JSON.stringify(flag.default_value)}
+                    mono
+                  />
+                  <Detail
+                    label={t('globalStatus')}
+                    value={flag.enabled ? t('enabled') : t('disabled')}
                     tone={flag.enabled ? 'good' : 'bad'}
                   />
-                  <Detail label="Owner team" value={flag.owner_team || '—'} />
-                  <Detail label="Created" value={new Date(flag.created_at).toLocaleString()} />
-                  <Detail label="Updated" value={new Date(flag.updated_at).toLocaleString()} />
+                  <Detail label={t('ownerTeam')} value={flag.owner_team || '—'} />
+                  <Detail label={t('createdAt')} value={new Date(flag.created_at).toLocaleString()} />
+                  <Detail label={t('updatedAt')} value={new Date(flag.updated_at).toLocaleString()} />
                 </dl>
               </Card>
             </Section>
 
             {/* Environment resolution */}
-            <Section title={`Resolved in ${selectedEnv?.name || 'environment'}`} className="mb-0">
+            <Section
+              title={t('resolvedIn', {
+                environment: selectedEnv?.name || t('environmentFallback'),
+              })}
+              className="mb-0"
+            >
               <Card>
                 {evalLoading ? (
                   <div className="h-16 rounded-lg bg-hoverBg animate-pulse" />
@@ -300,13 +311,15 @@ export default function FlagDetailPage() {
                         {JSON.stringify(evalResult.value)}
                       </p>
                       <Badge tone={evalResult.cached ? 'warn' : 'good'} dot live={!evalResult.cached}>
-                        {evalResult.cached ? 'Cached' : 'Live'}
+                        {evalResult.cached ? t('cachedState') : t('liveState')}
                       </Badge>
                     </div>
-                    <p className="mt-1 text-xs text-muted">reason: {evalResult.reason}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {t('reasonPrefix', { reason: evalResult.reason })}
+                    </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted">Couldn't evaluate.</p>
+                  <p className="text-sm text-muted">{t('couldNotEvaluate')}</p>
                 )}
 
                 <div className="mt-4 flex gap-2">
@@ -317,7 +330,7 @@ export default function FlagDetailPage() {
                     onClick={() => handleToggleForEnvironment(true)}
                     className="flex-1"
                   >
-                    Turn on here
+                    {t('turnOnHere')}
                   </Button>
                   <Button
                     variant="danger"
@@ -326,19 +339,19 @@ export default function FlagDetailPage() {
                     onClick={() => handleToggleForEnvironment(false)}
                     className="flex-1"
                   >
-                    Turn off here
+                    {t('turnOffHere')}
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-muted">
-                  Sets an environment override without changing the global default.
-                </p>
+                <p className="mt-2 text-xs text-muted">{t('overrideHint')}</p>
               </Card>
             </Section>
           </div>
 
           <Section
-            title="Targeting rule panel"
-            description={`Rules apply to ${selectedEnv?.name || 'the selected environment'}.`}
+            title={t('targetingPanel')}
+            description={t('targetingApplyTo', {
+              environment: selectedEnv?.name || t('selectedEnvironmentFallback'),
+            })}
           >
             <Card>
               {targetingLoading ? (
@@ -347,15 +360,13 @@ export default function FlagDetailPage() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-ink">Priority summary</p>
-                      <p className="text-xs text-muted">
-                        User IDs, then groups, then percentage rollout, then environment override.
-                      </p>
+                      <p className="text-sm font-semibold text-ink">{t('prioritySummary')}</p>
+                      <p className="text-xs text-muted">{t('priorityOrder')}</p>
                     </div>
                     <Badge tone="accent">
                       {targetingRules.user_ids.length || targetingRules.group_keys.length || targetingRules.percentage !== null
-                        ? 'Configured'
-                        : 'No targeting rules'}
+                        ? t('targetingConfigured')
+                        : t('targetingNone')}
                     </Badge>
                   </div>
 
@@ -368,8 +379,8 @@ export default function FlagDetailPage() {
                           <Check className="h-3.5 w-3.5" />
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-ink">User ID whitelist</p>
-                          <p className="text-xs text-muted">Highest priority — always wins if matched</p>
+                          <p className="text-sm font-semibold text-ink">{t('userWhitelist')}</p>
+                          <p className="text-xs text-muted">{t('userWhitelistHint')}</p>
                         </div>
                       </div>
                       <Textarea
@@ -379,10 +390,10 @@ export default function FlagDetailPage() {
                         placeholder="alice@example.com, bob@example.com"
                       />
                       <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                        Applies to
+                        {t('appliesTo')}
                       </p>
                       {parseList(userIdInput).length === 0 ? (
-                        <p className="text-sm text-muted">No user IDs added yet.</p>
+                        <p className="text-sm text-muted">{t('noUserIdsYet')}</p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {parseList(userIdInput).map((userId) => (
@@ -391,7 +402,7 @@ export default function FlagDetailPage() {
                               type="button"
                               onClick={() => removeUserId(userId)}
                               className="group inline-flex items-center gap-1.5 rounded-md border border-accent/25 bg-accentSoft px-2.5 py-1 text-xs font-semibold text-accentDark transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
-                              title="Click to remove"
+                              title={t('clickToRemove')}
                             >
                               <span className="font-mono">{userId}</span>
                               <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
@@ -407,14 +418,14 @@ export default function FlagDetailPage() {
                           <Users className="h-3.5 w-3.5" />
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-ink">Group targeting</p>
-                          <p className="text-xs text-muted">Click a group to target it, click again to remove</p>
+                          <p className="text-sm font-semibold text-ink">{t('groupTargeting')}</p>
+                          <p className="text-xs text-muted">{t('groupTargetingHint')}</p>
                         </div>
                       </div>
 
                       {availableGroups.length === 0 ? (
                         <p className="text-sm text-muted">
-                          No groups seeded yet — add one in <span className="font-medium text-ink">User groups</span>.
+                          {t('noGroupsSeeded', { link: t('groupsTitle') })}
                         </p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
@@ -440,7 +451,7 @@ export default function FlagDetailPage() {
                       )}
 
                       <p className="mb-1 mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                        Extra group keys
+                        {t('extraGroupKeys')}
                       </p>
                       <Input
                         value={extraGroupKeysInput}
@@ -455,7 +466,7 @@ export default function FlagDetailPage() {
                               type="button"
                               onClick={() => removeExtraGroup(group)}
                               className="group inline-flex items-center gap-1.5 rounded-md border border-good/25 bg-goodSoft px-2.5 py-1 text-xs font-semibold font-mono text-good transition-colors hover:border-bad/30 hover:bg-badSoft hover:text-bad"
-                              title="Click to remove"
+                              title={t('clickToRemove')}
                             >
                               {group}
                               <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
@@ -473,8 +484,8 @@ export default function FlagDetailPage() {
                           <Percent className="h-3.5 w-3.5" />
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-ink">Percentage rollout</p>
-                          <p className="text-xs text-muted">Same user always lands in the same bucket</p>
+                          <p className="text-sm font-semibold text-ink">{t('percentageRollout')}</p>
+                          <p className="text-xs text-muted">{t('percentageHint')}</p>
                         </div>
                       </div>
                       <span className="rounded-md border border-border bg-surface px-2.5 py-1 font-mono text-sm font-semibold text-accentDark">
@@ -496,11 +507,9 @@ export default function FlagDetailPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-                    <p className="text-xs text-muted">
-                      Targeting changes invalidate the cache for this flag immediately.
-                    </p>
+                    <p className="text-xs text-muted">{t('cacheInvalidateHint')}</p>
                     <Button onClick={handleSaveTargeting} loading={targetingSaving} icon={Sparkles} size="lg">
-                      Save targeting rules
+                      {t('saveTargetingRules')}
                     </Button>
                   </div>
                 </div>
@@ -509,8 +518,8 @@ export default function FlagDetailPage() {
           </Section>
 
           <Section
-            title="Evaluation analytics"
-            description="How often consuming applications actually ask for this flag."
+            title={t('evaluationAnalytics')}
+            description={t('evaluationAnalyticsHint')}
           >
             <EvaluationChart
               flagKey={flag.key}
@@ -520,12 +529,12 @@ export default function FlagDetailPage() {
           </Section>
 
           <Section
-            title="Evaluation test panel"
-            description="Type a fake user ID and optional groups to see what the flag resolves to."
+            title={t('testPanel')}
+            description={t('testPanelHint')}
           >
             <Card>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Test user ID">
+                <Field label={t('testUserId')}>
                   <Input
                     mono
                     value={testUserId}
@@ -533,7 +542,7 @@ export default function FlagDetailPage() {
                     placeholder="alice@example.com"
                   />
                 </Field>
-                <Field label="Test groups" hint="Comma separated — added to any stored memberships.">
+                <Field label={t('testGroups')} hint={t('testGroupsHint')}>
                   <Input
                     mono
                     value={testGroups}
@@ -553,34 +562,34 @@ export default function FlagDetailPage() {
                         {JSON.stringify(testResult.value)}
                       </p>
                       <Badge tone={testResult.cached ? 'warn' : 'good'} dot live={!testResult.cached}>
-                        {testResult.cached ? 'Cached' : 'Live'}
+                        {testResult.cached ? t('cachedState') : t('liveState')}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted">Resolved by {testResult.reason}</p>
+                    <p className="text-sm text-muted">
+                      {t('resolvedBy', { reason: testResult.reason })}
+                    </p>
                   </div>
                 ) : testError ? (
                   <p className="text-sm text-bad">{testError}</p>
                 ) : (
-                  <p className="text-sm text-muted">No evaluation yet.</p>
+                  <p className="text-sm text-muted">{t('noEvaluationYet')}</p>
                 )}
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-muted">
-                  The panel re-evaluates after a short pause so you can see rule priority changes quickly.
-                </p>
+                <p className="text-xs text-muted">{t('rerunHint')}</p>
                 <Button size="sm" variant="secondary" icon={Play} onClick={runTestEvaluation} loading={testLoading}>
-                  Run evaluation
+                  {t('runEvaluation')}
                 </Button>
               </div>
             </Card>
           </Section>
 
           {/* History */}
-          <Section title="History" description="Every change to this flag's configuration">
+          <Section title={t('history')} description={t('historyHint')}>
             <Card padded={false}>
               {versions.length === 0 ? (
-                <p className="p-4 text-sm text-muted">No version history yet.</p>
+                <p className="p-4 text-sm text-muted">{t('noHistoryYet')}</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {versions.map((v) => (
@@ -590,10 +599,13 @@ export default function FlagDetailPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm text-ink">
-                          v{v.version_number} &middot; {v.change_note || 'Updated'}
+                          v{v.version_number} &middot; {v.change_note || t('versionUpdated')}
                         </p>
                         <p className="text-xs text-muted">
-                          {new Date(v.created_at).toLocaleString()} by {v.created_by}
+                          {t('versionBy', {
+                            date: new Date(v.created_at).toLocaleString(),
+                            actor: v.created_by,
+                          })}
                         </p>
                       </div>
                     </li>

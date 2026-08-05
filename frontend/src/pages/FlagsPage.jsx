@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Flag, CheckCircle2, XCircle, Clock, Search } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 import FlagTable from '../components/FlagTable'
 import FlagForm from '../components/FlagForm'
 import CleanupPanel from '../components/CleanupPanel'
@@ -12,6 +13,7 @@ const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export default function FlagsPage() {
   const { isAdmin } = useAuth()
+  const t = useT()
   const [flags, setFlags] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -97,17 +99,17 @@ export default function FlagsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="Flags" breadcrumb="FlagForge" />
+      <Navbar title={t('navFlags')} breadcrumb="FlagForge" />
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
-            title="Feature flags"
-            description="Create flags and control them per environment without a deploy."
+            title={t('flagsTitle')}
+            description={t('flagsSubtitle')}
             action={
               isAdmin && (
                 <Button icon={Plus} onClick={() => setShowForm(true)}>
-                  Create flag
+                  {t('createFlag')}
                 </Button>
               )
             }
@@ -117,12 +119,12 @@ export default function FlagsPage() {
             <div className="flex items-center gap-3">
               <span className="signal-dot signal-dot--live bg-good" />
               <div>
-                <p className="text-sm font-semibold text-ink">Evaluation engine online</p>
-                <p className="text-xs text-muted">Targeting, rollouts, and overrides resolve live for every request.</p>
+                <p className="text-sm font-semibold text-ink">{t('engineOnline')}</p>
+                <p className="text-xs text-muted">{t('engineOnlineHint')}</p>
               </div>
             </div>
-            <span className="rounded-md border border-border bg-surfaceMuted px-2.5 py-1 font-mono text-[11px] text-muted">
-              {stats.total} flag{stats.total === 1 ? '' : 's'} tracked
+            <span className="shrink-0 rounded-md border border-border bg-surfaceMuted px-2.5 py-1 text-[11px] font-medium text-muted">
+              {t('flagsTracked', { count: stats.total })}
             </span>
           </div>
 
@@ -130,11 +132,21 @@ export default function FlagsPage() {
 
           <Section>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <StatCard label="Total flags" value={stats.total} icon={Flag} tone="accent" />
-              <StatCard label="Enabled" value={stats.enabled} icon={CheckCircle2} tone="good" />
-              <StatCard label="Disabled" value={stats.disabled} icon={XCircle} tone="neutral" />
+              <StatCard label={t('statTotalFlags')} value={stats.total} icon={Flag} tone="accent" />
               <StatCard
-                label="Recently updated"
+                label={t('statEnabled')}
+                value={stats.enabled}
+                icon={CheckCircle2}
+                tone="good"
+              />
+              <StatCard
+                label={t('statDisabled')}
+                value={stats.disabled}
+                icon={XCircle}
+                tone="neutral"
+              />
+              <StatCard
+                label={t('statRecentlyUpdated')}
                 value={stats.recentlyUpdated}
                 icon={Clock}
                 tone="warn"
@@ -145,39 +157,40 @@ export default function FlagsPage() {
           <Section>
             <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-hairline sm:flex-row sm:items-center">
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by key, owner, or description…"
-                  className="pl-9"
+                  placeholder={t('searchFlagsPlaceholder')}
+                  aria-label={t('search')}
+                  className="ps-9"
                 />
               </div>
               <Dropdown
                 value={statusFilter}
                 onChange={setStatusFilter}
-                className="sm:w-40"
+                className="sm:w-44"
                 options={[
-                  { value: 'all', label: 'All statuses' },
-                  { value: 'enabled', label: 'Enabled' },
-                  { value: 'disabled', label: 'Disabled' },
+                  { value: 'all', label: t('allStatuses') },
+                  { value: 'enabled', label: t('enabled') },
+                  { value: 'disabled', label: t('disabled') },
                 ]}
               />
               <Dropdown
                 value={sortBy}
                 onChange={setSortBy}
-                className="sm:w-48"
+                className="sm:w-52"
                 options={[
-                  { value: 'key-asc', label: 'Key (A–Z)' },
-                  { value: 'key-desc', label: 'Key (Z–A)' },
-                  { value: 'updated-desc', label: 'Recently updated' },
+                  { value: 'key-asc', label: t('sortKeyAsc') },
+                  { value: 'key-desc', label: t('sortKeyDesc') },
+                  { value: 'updated-desc', label: t('sortRecent') },
                 ]}
               />
             </div>
 
             {!loading && !error && (
               <p className="mb-3 text-xs text-muted">
-                {visibleFlags.length} of {flags.length} flag{flags.length === 1 ? '' : 's'}
+                {t('showingFlags', { shown: visibleFlags.length, total: flags.length })}
               </p>
             )}
 

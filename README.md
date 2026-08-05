@@ -214,16 +214,24 @@ in rather than after.
   Searchable by either the language's own name or its English one. Arabic,
   Urdu, Persian and Hebrew render right-to-left.
 
-The **shell** — navigation, landing page, sign-in screen, preference controls —
-is translated in every language. The deeper console screens (flag editor,
-targeting rules, audit diffs) stay English everywhere: they're dense with API
-field names and JSON, and translating them convincingly is a content job rather
-than a code one. Missing keys fall back to English, so a partially translated
-locale degrades into a readable mixed interface rather than a broken one.
+**Every user-facing string on every page** goes through the translation
+layer — navigation, page headers, table columns, buttons, form labels, hints,
+empty states, error messages and modals. What stays English in every locale is
+the data underneath: flag keys, `boolean`/`true`/`false`, JSON payloads, reason
+codes like `percentage_rollout`, and paths like `POST /evaluate`. Translating
+those would make the console misreport what the API actually stores.
 
-`cd frontend && npm run check:i18n` verifies the catalogue: no invented keys, no
-empty strings, no locale missing a shell key, and no drift between the RTL list
-and the copy hardcoded in the pre-paint script.
+English, Hindi and Bengali are complete (308 keys). The other 43 locales carry
+the shell and fall back to English for the rest, so a partially translated
+locale degrades into a readable mixed interface rather than a broken one —
+`npm run check:i18n` prints the split so partial coverage never looks like full
+coverage. Filling one in is data entry, not code.
+
+`cd frontend && npm run check:i18n` runs two checks: the catalogue invariants
+(no invented keys, no empty strings, correct locale resolution, no drift with
+the pre-paint script) and a scanner that fails the build on any user-facing
+string still hardcoded in JSX. The second one exists because the first pass at
+i18n translated the navigation and stopped, and nothing caught it.
 
 ## Audit log (Milestone 3)
 

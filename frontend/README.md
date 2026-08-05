@@ -93,28 +93,62 @@ findable by typing `Bengali` or `বাংলা`. The choice persists under
 
 - `src/i18n/languages.js` — the list, with each language's own name, its English
   name, its region grouping, and whether it reads right-to-left.
-- `src/i18n/translations.js` — the strings. English is the complete catalogue
-  and the fallback; every other locale defines the *shell* (navigation, landing
-  page, sign-in screen, preference controls). A key a locale doesn't define
-  falls through to English rather than rendering a raw key.
-- `src/context/LanguageContext.jsx` — `t()`, plus the `lang` and `dir`
-  attributes on `<html>`.
+- `src/i18n/locales/*.js` — one catalogue per language. `en.js` is complete and
+  is the fallback; a key a locale doesn't define falls through to English rather
+  than rendering a raw key.
+- `src/i18n/translations.js` — the registry. Imports are explicit rather than
+  `import.meta.glob` so the checks below can run under plain Node.
+- `src/context/LanguageContext.jsx` — `t(key, values)`, plus the `lang` and
+  `dir` attributes on `<html>`.
 
-**What isn't translated:** the deeper console screens — flag editor, targeting
-rules, audit diffs, analytics labels — are English in every locale. They're
-dense with API field names and JSON, and translating them convincingly is a
-content job rather than a code one. The boundary is deliberate; adding a screen
-means adding its keys to `en` and to whichever locales you can cover.
+**Every user-facing string on every page goes through `t()`** — navigation,
+page headers, table columns, buttons, form labels, hints, empty states, error
+messages, modals and `aria-label`s. Interpolation (`t('showingFlags', { shown,
+total })`) keeps each sentence one translatable unit, because word order differs
+between languages and a translator can't reorder fragments that were
+concatenated in JSX.
+
+**What deliberately stays in English, in every locale:** values that come from
+the API rather than from the interface — flag keys, `boolean`/`string`/`number`
+types, `true`/`false`, JSON payloads, reason codes like `percentage_rollout`,
+environment keys, and paths like `POST /evaluate`. Translating those would make
+the console misreport what is actually stored.
+
+### Translation coverage
+
+`en`, `hi` and `bn` are complete (308 keys). The other 43 locales carry the
+**shell** — navigation, landing page, sign-in screen, and the theme/language
+controls — and fall back to English for the rest. `npm run check:i18n` prints
+the split on every run, so partial coverage never looks like full coverage.
+
+Filling one in is data entry, not code: copy `src/i18n/locales/en.js`, translate
+the values, and the check will confirm no key was invented or left empty.
+
+### Right-to-left
 
 Arabic, Urdu, Persian and Hebrew set `dir="rtl"`. Layout uses Tailwind's logical
-properties (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`) so the mirroring is
-automatic; `.rtl-flip` handles the few icons that encode a physical direction.
+properties (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`) so mirroring is
+automatic; `.rtl-flip` handles the few icons that encode a physical direction,
+and the `Switch` knob is positioned rather than translated so it slides the
+right way.
+
+### Checks
 
 ```bash
-npm run check:i18n   # catalogue invariants, no test runner needed
+npm run check:i18n
 ```
 
-That script fails on a translation key English doesn't have, an empty string, a
-locale missing any shell key, a locale declared but never translated, and a
-drift between the RTL list and the copy hardcoded in `index.html`'s pre-paint
-script.
+Runs two scripts, neither of which needs a test runner:
+
+- `scripts/check-i18n.mjs` — catalogue invariants: a key no locale invented, no
+  empty strings, no locale missing a shell key, no locale declared but absent,
+  correct locale resolution (`zh-Hant-HK` → Traditional, not Simplified), and no
+  drift between the RTL list and the copy hardcoded in `index.html`'s pre-paint
+  script.
+- `scripts/check-untranslated.mjs` — scans the JSX for user-facing text that
+  never reaches `t()`, both in text nodes and in rendered props (`title`,
+  `label`, `placeholder`, `aria-label`…). This exists because the first pass at
+  i18n translated the navigation and stopped, and nothing caught it: the app
+  built, the tests passed, and every page still rendered in English. Identifiers
+  that must stay verbatim live in an explicit `ALLOWED` list, so skipping one is
+  a visible decision.

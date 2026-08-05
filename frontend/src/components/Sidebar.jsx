@@ -70,11 +70,9 @@ export default function Sidebar() {
           <div className="rounded-lg border border-border bg-surfaceMuted p-3.5">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
               <span className="signal-dot signal-dot--live bg-good" />
-              Milestone 3
+              {t('milestoneBadge')}
             </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted">
-              Audit diffs, analytics, cleanup, and the Python middleware are live.
-            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">{t('milestoneCopy')}</p>
           </div>
         </div>
       </div>

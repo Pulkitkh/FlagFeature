@@ -3,6 +3,7 @@ import Modal from './ui/Modal'
 import Button from './ui/Button'
 import Dropdown from './ui/Dropdown'
 import { Field, Input, Textarea, Switch } from './ui/Input'
+import { useT } from '../context/LanguageContext'
 
 const DEFAULT_VALUE_BY_TYPE = {
   boolean: true,
@@ -12,6 +13,7 @@ const DEFAULT_VALUE_BY_TYPE = {
 
 export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, error }) {
   const isEdit = Boolean(initialFlag)
+  const t = useT()
 
   const [key, setKey] = useState(initialFlag?.key || '')
   const [type, setType] = useState(initialFlag?.type || 'boolean')
@@ -52,16 +54,12 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
     <Modal
       open
       onClose={onCancel}
-      title={isEdit ? `Edit ${initialFlag.key}` : 'Create flag'}
-      description={
-        isEdit
-          ? 'Changes are versioned automatically.'
-          : 'Flags start global; use the detail page to override per environment.'
-      }
+      title={isEdit ? t('editFlagTitle', { key: initialFlag.key }) : t('createFlag')}
+      description={isEdit ? t('editFlagHint') : t('createFlagHint')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isEdit && (
-          <Field label="Key">
+          <Field label={t('fieldKey')}>
             <Input
               required
               autoFocus
@@ -73,24 +71,26 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
           </Field>
         )}
 
-        <Field label="Type">
+        <Field label={t('fieldType')}>
           <Dropdown
             value={type}
             onChange={handleTypeChange}
             options={[
-              { value: 'boolean', label: 'Boolean' },
-              { value: 'string', label: 'String' },
-              { value: 'number', label: 'Number' },
+              { value: 'boolean', label: t('typeBoolean') },
+              { value: 'string', label: t('typeString') },
+              { value: 'number', label: t('typeNumber') },
             ]}
           />
         </Field>
 
-        <Field label="Default value">
+        <Field label={t('defaultValue')}>
           {type === 'boolean' ? (
             <Dropdown
               value={String(defaultValue)}
               onChange={(v) => setDefaultValue(v === 'true')}
               mono
+              // `true`/`false` are the literal API values, not prose — they stay
+              // in English in every locale so the form matches what's stored.
               options={[
                 { value: 'true', label: 'true' },
                 { value: 'false', label: 'false' },
@@ -106,7 +106,7 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
           )}
         </Field>
 
-        <Field label="Owner team">
+        <Field label={t('ownerTeam')}>
           <Input
             value={ownerTeam}
             onChange={(e) => setOwnerTeam(e.target.value)}
@@ -114,7 +114,7 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
           />
         </Field>
 
-        <Field label="Description">
+        <Field label={t('fieldDescription')}>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -122,16 +122,20 @@ export default function FlagForm({ initialFlag, onSubmit, onCancel, submitting, 
           />
         </Field>
 
-        <Switch checked={enabled} onChange={setEnabled} label="Enabled globally" />
+        <Switch checked={enabled} onChange={setEnabled} label={t('enabledGlobally')} />
 
-        {error && <p className="text-sm text-bad">{error}</p>}
+        {error && (
+          <p className="rounded-lg border border-bad/25 bg-badSoft px-3 py-2.5 text-sm text-bad">
+            {error}
+          </p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" loading={submitting}>
-            {isEdit ? 'Save changes' : 'Create flag'}
+            {isEdit ? t('saveChanges') : t('createFlag')}
           </Button>
         </div>
       </form>

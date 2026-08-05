@@ -3,6 +3,7 @@ import { KeyRound, Plus, ShieldCheck, UserCheck, UserPlus, UserX } from 'lucide-
 import Navbar from '../components/Navbar'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 import {
   Badge,
   Button,
@@ -20,19 +21,17 @@ import {
   TableSkeleton,
 } from '../components/ui'
 
-const ROLE_OPTIONS = [
-  { value: 'viewer', label: 'Viewer — read only' },
-  { value: 'admin', label: 'Admin — can change everything' },
+// Values are the API's role enum; only the labels translate.
+const ROLE_KEYS = [
+  { value: 'viewer', labelKey: 'roleViewerOption' },
+  { value: 'admin', labelKey: 'roleAdminOption' },
 ]
-
-const COLUMNS = ['Person', 'Role', 'Status', 'Last signed in', '']
-
-function formatDate(value) {
-  return value ? new Date(value).toLocaleString() : 'Never'
-}
 
 export default function AccountsPage() {
   const { user: currentUser } = useAuth()
+  const t = useT()
+  const roleOptions = ROLE_KEYS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))
+  const formatDate = (value) => (value ? new Date(value).toLocaleString() : t('never'))
 
   const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -81,24 +80,29 @@ export default function AccountsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="Accounts" breadcrumb="FlagForge" />
+      <Navbar title={t('accountsTitle')} breadcrumb="FlagForge" />
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
-            title="Accounts"
-            description="Who can sign in, and what they're allowed to do. Admins change flags; viewers can see everything but change nothing."
+            title={t('accountsTitle')}
+            description={t('accountsSubtitle')}
             action={
               <Button icon={UserPlus} onClick={() => setShowInvite(true)}>
-                Add account
+                {t('addAccount')}
               </Button>
             }
           />
 
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-            <StatCard label="Accounts" value={stats.total} icon={UserCheck} tone="accent" />
-            <StatCard label="Admins" value={stats.admins} icon={ShieldCheck} tone="good" />
-            <StatCard label="Deactivated" value={stats.inactive} icon={UserX} tone="neutral" />
+            <StatCard label={t('statAccounts')} value={stats.total} icon={UserCheck} tone="accent" />
+            <StatCard label={t('statAdmins')} value={stats.admins} icon={ShieldCheck} tone="good" />
+            <StatCard
+              label={t('statDeactivated')}
+              value={stats.inactive}
+              icon={UserX}
+              tone="neutral"
+            />
           </div>
 
           {error && (
@@ -112,11 +116,19 @@ export default function AccountsPage() {
           ) : accounts.length === 0 ? (
             <EmptyState
               icon={UserPlus}
-              title="No accounts yet"
-              description="Add one to let someone else into the console."
+              title={t('noAccountsTitle')}
+              description={t('noAccountsHint')}
             />
           ) : (
-            <Table columns={COLUMNS}>
+            <Table
+              columns={[
+                t('colPerson'),
+                t('fieldRole'),
+                t('fieldStatus'),
+                t('colLastSignedIn'),
+                { label: '', align: 'end' },
+              ]}
+            >
               {accounts.map((account) => {
                 const isSelf = account.id === currentUser?.id
                 return (
@@ -124,7 +136,7 @@ export default function AccountsPage() {
                     <Cell>
                       <span className="block truncate text-sm font-medium text-ink">
                         {account.name || '—'}
-                        {isSelf && <span className="ml-2 text-xs text-muted">(you)</span>}
+                        {isSelf && <span className="ms-2 text-xs text-muted">{t('labelYou')}</span>}
                       </span>
                       <span className="block truncate font-mono text-xs text-muted">
                         {account.email}
@@ -135,19 +147,19 @@ export default function AccountsPage() {
                         <Dropdown
                           value={account.role}
                           onChange={(role) => mutate(account, { role })}
-                          options={ROLE_OPTIONS}
+                          options={roleOptions}
                         />
                       </div>
                     </Cell>
                     <Cell>
                       <Badge tone={account.is_active ? 'good' : 'neutral'} dot live={account.is_active}>
-                        {account.is_active ? 'Active' : 'Deactivated'}
+                        {account.is_active ? t('activeState') : t('deactivatedState')}
                       </Badge>
                     </Cell>
                     <Cell className="whitespace-nowrap font-mono text-xs text-muted">
                       {formatDate(account.last_login_at)}
                     </Cell>
-                    <Cell className="text-right">
+                    <Cell className="text-end">
                       <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
@@ -156,7 +168,7 @@ export default function AccountsPage() {
                           className="whitespace-nowrap"
                           onClick={() => setResetTarget(account)}
                         >
-                          Reset password
+                          {t('resetPassword')}
                         </Button>
                         <Button
                           size="sm"
@@ -167,13 +179,13 @@ export default function AccountsPage() {
                           disabled={isSelf && account.is_active}
                           title={
                             isSelf && account.is_active
-                              ? "You can't deactivate your own account"
+                              ? t('cannotDeactivateSelf')
                               : undefined
                           }
                           className="whitespace-nowrap"
                           onClick={() => mutate(account, { is_active: !account.is_active })}
                         >
-                          {account.is_active ? 'Deactivate' : 'Reactivate'}
+                          {account.is_active ? t('deactivate') : t('reactivate')}
                         </Button>
                       </div>
                     </Cell>
@@ -210,6 +222,7 @@ export default function AccountsPage() {
 }
 
 function InviteDialog({ onClose, onCreated }) {
+  const t = useT()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -220,7 +233,7 @@ function InviteDialog({ onClose, onCreated }) {
   async function handleSubmit(event) {
     event.preventDefault()
     if (password.length < 8) {
-      setError('Use at least 8 characters.')
+      setError(t('passwordTooShort'))
       return
     }
 
@@ -240,11 +253,11 @@ function InviteDialog({ onClose, onCreated }) {
     <Modal
       open
       onClose={onClose}
-      title="Add an account"
-      description="Set a starting password and share it with them — they can change it once they're in."
+      title={t('addAccountTitle')}
+      description={t('addAccountHint')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Email">
+        <Field label={t('email')}>
           <Input
             type="email"
             required
@@ -254,10 +267,10 @@ function InviteDialog({ onClose, onCreated }) {
             placeholder="teammate@example.com"
           />
         </Field>
-        <Field label="Name">
+        <Field label={t('fieldName')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Priya Shah" />
         </Field>
-        <Field label="Starting password" hint="At least 8 characters.">
+        <Field label={t('startingPassword')} hint={t('passwordMinHint')}>
           <Input
             type="text"
             required
@@ -266,18 +279,22 @@ function InviteDialog({ onClose, onCreated }) {
             placeholder="something-they-can-change"
           />
         </Field>
-        <Field label="Role">
-          <Dropdown value={role} onChange={setRole} options={ROLE_OPTIONS} />
+        <Field label={t('fieldRole')}>
+          <Dropdown
+            value={role}
+            onChange={setRole}
+            options={ROLE_KEYS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
+          />
         </Field>
 
         {error && <p className="text-sm text-bad">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" icon={Plus} loading={saving}>
-            Add account
+            {t('addAccount')}
           </Button>
         </div>
       </form>
@@ -286,6 +303,7 @@ function InviteDialog({ onClose, onCreated }) {
 }
 
 function ResetPasswordDialog({ account, onClose, onDone }) {
+  const t = useT()
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -293,7 +311,7 @@ function ResetPasswordDialog({ account, onClose, onDone }) {
   async function handleSubmit(event) {
     event.preventDefault()
     if (password.length < 8) {
-      setError('Use at least 8 characters.')
+      setError(t('passwordTooShort'))
       return
     }
 
@@ -313,11 +331,11 @@ function ResetPasswordDialog({ account, onClose, onDone }) {
     <Modal
       open
       onClose={onClose}
-      title={`Reset password for ${account.email}`}
-      description="They'll need this to sign in. Existing sessions keep working until the token expires."
+      title={t('resetPasswordFor', { email: account.email })}
+      description={t('resetPasswordHint')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="New password" hint="At least 8 characters.">
+        <Field label={t('newPassword')} hint={t('passwordMinHint')}>
           <Input
             type="text"
             required
@@ -331,10 +349,10 @@ function ResetPasswordDialog({ account, onClose, onDone }) {
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" icon={KeyRound} loading={saving}>
-            Reset password
+            {t('resetPassword')}
           </Button>
         </div>
       </form>

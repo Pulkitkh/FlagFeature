@@ -146,8 +146,22 @@ if (problems.length) {
   process.exit(1)
 }
 
-const translated = codes.length - 1
+// Coverage is reported rather than enforced: a locale below 100% still renders,
+// because every missing key falls back to English. Printing it keeps that
+// honest instead of letting partial coverage look like full coverage.
+const coverage = codes
+  .filter((code) => code !== DEFAULT_LANGUAGE)
+  .map((code) => ({
+    code,
+    percent: Math.round((Object.keys(translations[code]).length / englishKeys.size) * 100),
+  }))
+  .sort((a, b) => b.percent - a.percent)
+
+const full = coverage.filter((entry) => entry.percent === 100)
+const partial = coverage.filter((entry) => entry.percent < 100)
+
 console.log(
-  `i18n ok — ${codes.length} languages (${translated} translated + English), ` +
-    `${englishKeys.size} keys, ${SHELL_KEYS.length} required in every locale.`
+  `i18n ok — ${codes.length} languages, ${englishKeys.size} keys.\n` +
+    `  fully translated: ${full.length + 1} (English + ${full.map((e) => e.code).join(', ') || 'none'})\n` +
+    `  shell-only, rest falls back to English: ${partial.length}`
 )

@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { Check, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useT } from '../context/LanguageContext'
 import { Badge, Button, Card, Dropdown } from './ui'
 
 const STALE_OPTIONS = [
-  { value: '7', label: 'Stale 7+ days' },
-  { value: '30', label: 'Stale 30+ days' },
-  { value: '60', label: 'Stale 60+ days' },
-  { value: '90', label: 'Stale 90+ days' },
+  { value: '7', labelKey: 'stale7' },
+  { value: '30', labelKey: 'stale30' },
+  { value: '60', labelKey: 'stale60' },
+  { value: '90', labelKey: 'stale90' },
 ]
 
 const STATE_META = {
-  on: { tone: 'good', label: 'Fully rolled out' },
-  off: { tone: 'neutral', label: 'Switched off' },
+  on: { tone: 'good', labelKey: 'cleanupFullyRolledOut' },
+  off: { tone: 'neutral', labelKey: 'cleanupSwitchedOff' },
 }
 
 /**
@@ -24,6 +25,7 @@ const STATE_META = {
 export default function CleanupPanel() {
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
+  const t = useT()
   const [staleDays, setStaleDays] = useState('30')
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export default function CleanupPanel() {
   async function markReviewed(flagKey) {
     setBusyKey(flagKey)
     try {
-      await api.reviewFlagCleanup(flagKey, 'Reviewed from the dashboard')
+      await api.reviewFlagCleanup(flagKey, t('reviewedNote'))
       // Re-read rather than filtering locally, so the list matches the server.
       load()
     } catch (err) {
@@ -63,15 +65,12 @@ export default function CleanupPanel() {
     <Card padded={false} className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surfaceMuted text-warn">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-warn/20 bg-warnSoft text-warn">
             <Sparkles className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-ink">Cleanup suggestions</h2>
-            <p className="text-xs text-muted">
-              Flags that behave the same for everyone in every environment — safe to delete from
-              the code
-            </p>
+            <h2 className="text-sm font-semibold text-ink">{t('cleanupTitle')}</h2>
+            <p className="text-xs text-muted">{t('cleanupHint')}</p>
           </div>
         </div>
 
@@ -79,8 +78,8 @@ export default function CleanupPanel() {
           <Dropdown
             value={staleDays}
             onChange={setStaleDays}
-            options={STALE_OPTIONS}
-            className="w-44"
+            options={STALE_OPTIONS.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
+            className="w-48"
           />
           <Badge tone={suggestions.length ? 'warn' : 'good'}>
             {loading ? '—' : suggestions.length}
@@ -92,40 +91,44 @@ export default function CleanupPanel() {
         {loading ? (
           <div className="h-20 animate-pulse rounded-xl bg-hoverBg" />
         ) : error ? (
-          <p className="text-sm text-bad">{error}</p>
+          <p className="rounded-lg border border-bad/25 bg-badSoft px-3 py-2.5 text-sm text-bad">
+            {error}
+          </p>
         ) : suggestions.length === 0 ? (
           <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-border bg-surfaceMuted px-4 py-5">
             <Check className="h-4 w-4 shrink-0 text-good" />
-            <p className="text-sm text-muted">
-              Nothing to clean up. Every flag is either still doing real work or was changed
-              recently.
-            </p>
+            <p className="text-sm text-muted">{t('cleanupEmpty')}</p>
           </div>
         ) : (
           <ul className="space-y-3">
             {suggestions.map((item) => {
-              const meta = STATE_META[item.state] || { tone: 'neutral', label: item.state }
+              const meta = STATE_META[item.state]
               return (
                 <li
                   key={item.flag_key}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surfaceMuted p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surfaceMuted p-4 transition-colors hover:border-borderStrong"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => navigate(`/flags/${encodeURIComponent(item.flag_key)}`)}
-                        className="truncate font-mono text-sm font-semibold text-ink hover:text-accent"
+                        className="truncate font-mono text-sm font-semibold text-ink transition-colors hover:text-accent"
                       >
                         {item.flag_key}
                       </button>
-                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                      <Badge tone={meta ? meta.tone : 'neutral'}>
+                        {meta ? t(meta.labelKey) : item.state}
+                      </Badge>
                       {item.owner_team && <Badge tone="neutral">{item.owner_team}</Badge>}
                     </div>
                     <p className="mt-1 text-xs text-muted">
-                      {item.reason} · unchanged for {item.stale_days} day
-                      {item.stale_days === 1 ? '' : 's'} · {item.evaluations} evaluation
-                      {item.evaluations === 1 ? '' : 's'} recorded
+                      {/* `item.reason` is an API reason code, left as-is. */}
+                      {item.reason} ·{' '}
+                      {t('cleanupMeta', {
+                        days: item.stale_days,
+                        evaluations: item.evaluations,
+                      })}
                     </p>
                   </div>
 
@@ -136,7 +139,7 @@ export default function CleanupPanel() {
                       icon={Trash2}
                       onClick={() => navigate(`/flags/${encodeURIComponent(item.flag_key)}`)}
                     >
-                      Open
+                      {t('open')}
                     </Button>
                     {isAdmin && (
                       <Button
@@ -145,7 +148,7 @@ export default function CleanupPanel() {
                         loading={busyKey === item.flag_key}
                         onClick={() => markReviewed(item.flag_key)}
                       >
-                        Mark reviewed
+                        {t('markReviewed')}
                       </Button>
                     )}
                   </div>

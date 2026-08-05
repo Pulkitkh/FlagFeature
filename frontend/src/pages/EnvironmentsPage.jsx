@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Layers, Flag, Activity, Plus, Pencil } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useEnvironment } from '../context/EnvironmentContext'
+import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
 import { PageHeader, Section, Card, Badge, Button, Field, Input, Dropdown, Modal } from '../components/ui'
 
@@ -13,6 +14,7 @@ const ENV_ICON_TONE = {
 
 export default function EnvironmentsPage() {
   const { environments, refresh, loading } = useEnvironment()
+  const t = useT()
   const [flagCount, setFlagCount] = useState(null)
   const [apiHealthy, setApiHealthy] = useState(null)
   const [flags, setFlags] = useState([])
@@ -100,32 +102,32 @@ export default function EnvironmentsPage() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      <Navbar title="Environments" breadcrumb="FlagForge" />
+      <Navbar title={t('environmentsTitle')} breadcrumb="FlagForge" />
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
-            title="Environments"
-            description="Every flag can be independently overridden per environment."
+            title={t('environmentsTitle')}
+            description={t('environmentsSubtitle')}
             action={
               <Button icon={Plus} onClick={() => setShowForm(true)}>
-                Add environment
+                {t('addEnvironment')}
               </Button>
             }
           />
 
           <Section
-            title="Environment flag preview"
-            description="Pick a flag to see how it resolves in each environment."
+            title={t('envPreviewTitle')}
+            description={t('envPreviewHint')}
           >
             <Card>
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                <Field label="Flag">
+                <Field label={t('navFlags')}>
                   <Dropdown
                     value={selectedFlagKey}
                     onChange={setSelectedFlagKey}
                     mono
-                    placeholder="Choose a flag"
+                    placeholder={t('chooseFlag')}
                     options={flags.map((flag) => ({ value: flag.key, label: flag.key, meta: flag }))}
                     renderOption={(option) => (
                       <span className="flex items-center gap-2">
@@ -141,24 +143,22 @@ export default function EnvironmentsPage() {
                     )}
                   />
                 </Field>
-                <div className="text-xs text-muted">
-                  Shows the resolved value, rule reason, and cache status.
-                </div>
+                <div className="text-xs text-muted">{t('envPreviewShows')}</div>
               </div>
 
               <div className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
                 {previewLoading ? (
-                  <div className="p-4 text-sm text-muted">Loading preview…</div>
+                  <div className="p-4 text-sm text-muted">{t('loadingPreview')}</div>
                 ) : flagPreview.length === 0 ? (
-                  <div className="p-4 text-sm text-muted">No preview available yet.</div>
+                  <div className="p-4 text-sm text-muted">{t('noPreview')}</div>
                 ) : (
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-start text-sm">
                     <thead className="border-b border-border bg-surfaceMuted text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
                       <tr>
-                        <th className="px-4 py-3">Environment</th>
-                        <th className="px-4 py-3">Resolved value</th>
-                        <th className="px-4 py-3">Reason</th>
-                        <th className="px-4 py-3">Cache</th>
+                        <th className="px-4 py-3 text-start">{t('fieldEnvironment')}</th>
+                        <th className="px-4 py-3 text-start">{t('colResolvedValue')}</th>
+                        <th className="px-4 py-3 text-start">{t('fieldReason')}</th>
+                        <th className="px-4 py-3 text-start">{t('colCache')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -172,7 +172,7 @@ export default function EnvironmentsPage() {
                           <td className="px-4 py-3 font-mono text-xs text-muted">{result.reason}</td>
                           <td className="px-4 py-3">
                             <Badge tone={result.cached ? 'warn' : 'good'} dot live={!result.cached}>
-                              {result.cached ? 'Cached' : 'Live'}
+                              {result.cached ? t('cachedState') : t('liveState')}
                             </Badge>
                           </td>
                         </tr>
@@ -205,19 +205,19 @@ export default function EnvironmentsPage() {
                       </div>
                     </div>
                     <Badge tone={ENV_ICON_TONE[env.key] || 'neutral'} dot live={env.key === 'production'}>
-                      {env.key === 'production' ? 'Live' : 'Active'}
+                      {env.key === 'production' ? t('liveState') : t('activeState')}
                     </Badge>
                   </div>
                   <div className="mt-3 flex justify-end">
                     <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openEdit(env)}>
-                      Edit
+                      {t('edit')}
                     </Button>
                   </div>
 
                   <div className="mt-5 space-y-2 border-t border-border pt-4 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-muted">
-                        <Flag className="h-3.5 w-3.5" /> Flags available
+                        <Flag className="h-3.5 w-3.5" /> {t('flagsAvailable')}
                       </span>
                       <span className="font-medium text-ink">
                         {flagCount === null ? '—' : flagCount}
@@ -225,19 +225,23 @@ export default function EnvironmentsPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-muted">
-                        <Activity className="h-3.5 w-3.5" /> API health
+                        <Activity className="h-3.5 w-3.5" /> {t('apiHealth')}
                       </span>
                       <span
                         className={`font-medium ${
                           apiHealthy === null ? 'text-muted' : apiHealthy ? 'text-good' : 'text-bad'
                         }`}
                       >
-                        {apiHealthy === null ? 'Checking…' : apiHealthy ? 'Healthy' : 'Degraded'}
+                        {apiHealthy === null
+                          ? t('apiChecking')
+                          : apiHealthy
+                            ? t('apiHealthy')
+                            : t('apiDegraded')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-muted">
-                      <span>Last deployment</span>
-                      <span className="text-xs">Not tracked yet</span>
+                      <span>{t('lastDeployment')}</span>
+                      <span className="text-xs">{t('notTrackedYet')}</span>
                     </div>
                   </div>
                 </Card>
@@ -250,11 +254,11 @@ export default function EnvironmentsPage() {
       <Modal
         open={showForm}
         onClose={() => setShowForm(false)}
-        title="Add environment"
-        description="e.g. qa, canary, sandbox — anything your rollout process needs."
+        title={t('addEnvironment')}
+        description={t('addEnvironmentHint')}
       >
         <form onSubmit={handleCreate} className="space-y-4">
-          <Field label="Key">
+          <Field label={t('fieldKey')}>
             <Input
               required
               mono
@@ -263,7 +267,7 @@ export default function EnvironmentsPage() {
               placeholder="qa"
             />
           </Field>
-          <Field label="Display name">
+          <Field label={t('displayName')}>
             <Input
               required
               value={name}
@@ -274,10 +278,10 @@ export default function EnvironmentsPage() {
           {error && <p className="text-sm text-bad">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" loading={submitting}>
-              Add environment
+              {t('addEnvironment')}
             </Button>
           </div>
         </form>
@@ -286,23 +290,23 @@ export default function EnvironmentsPage() {
       <Modal
         open={Boolean(editingEnv)}
         onClose={() => setEditingEnv(null)}
-        title="Edit environment"
-        description="Update the display name without changing the key."
+        title={t('editEnvironment')}
+        description={t('editEnvironmentHint')}
       >
         <form onSubmit={handleUpdateEnvironment} className="space-y-4">
-          <Field label="Environment key">
+          <Field label={t('environmentKey')}>
             <Input value={editingEnv?.key || ''} disabled />
           </Field>
-          <Field label="Display name">
+          <Field label={t('displayName')}>
             <Input required value={editName} onChange={(e) => setEditName(e.target.value)} />
           </Field>
           {editError && <p className="text-sm text-bad">{editError}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={() => setEditingEnv(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" loading={editSubmitting}>
-              Save changes
+              {t('saveChanges')}
             </Button>
           </div>
         </form>

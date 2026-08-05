@@ -53,11 +53,26 @@ export function LanguageProvider({ children }) {
   }, [])
 
   /**
-   * Look up a string. Missing keys fall back to English inside `catalogFor`,
-   * and a key that exists in no catalogue returns itself — visible in the UI,
-   * which is what you want while adding strings.
+   * Look up a string, substituting any `{placeholders}` from `values`.
+   *
+   * Missing keys fall back to English inside `catalogFor`, and a key that
+   * exists in no catalogue returns itself — visible in the UI, which is what
+   * you want while adding strings.
+   *
+   * Placeholders exist so a sentence stays one translatable unit: word order
+   * differs between languages, and a translator can't reorder fragments that
+   * were concatenated in JSX.
    */
-  const t = useCallback((key) => catalog[key] ?? key, [catalog])
+  const t = useCallback(
+    (key, values) => {
+      const template = catalog[key] ?? key
+      if (!values) return template
+      return template.replace(/\{(\w+)\}/g, (match, name) =>
+        Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match
+      )
+    },
+    [catalog]
+  )
 
   const value = useMemo(
     () => ({ language, setLanguage, t, direction, isRtl: direction === 'rtl' }),

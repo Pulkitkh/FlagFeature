@@ -107,8 +107,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-muted">
-          Evaluation runs on <code className="font-mono text-accentDark">POST /evaluate</code>, cached
-          in Redis.
+          {t('footerEval')}
         </p>
       </aside>
 
@@ -146,8 +145,7 @@ export default function LoginPage() {
               <p className="flex items-start gap-2 text-sm text-bad">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  Can't reach the API. Start the backend, then try again — signing in won't work
-                  until it responds.
+                  {t('loginApiDown')}
                 </span>
               </p>
             </Card>
@@ -180,7 +178,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((shown) => !shown)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                   className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-hoverBg hover:text-ink"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -200,10 +198,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 rounded-lg border border-border bg-surfaceMuted px-3.5 py-3 text-xs leading-relaxed text-muted">
-            First run? A default admin is created on startup —{' '}
-            <span className="font-mono text-ink">admin@flagforge.local</span> /{' '}
-            <span className="font-mono text-ink">admin12345</span>. Change the password once you're
-            in.
+            {t('loginFirstRun', { email: 'admin@flagforge.local', password: 'admin12345' })}
           </p>
         </div>
       </main>

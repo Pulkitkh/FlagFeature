@@ -1,5 +1,5 @@
 const baseInputClasses =
-  'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink shadow-hairline outline-none placeholder:text-muted/70 transition-colors focus:border-accent focus:ring-2 focus:ring-accentSoft'
+  'w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-ink shadow-hairline outline-none placeholder:text-muted/70 transition-[border-color,box-shadow] duration-150 hover:border-borderStrong focus:border-accent focus:ring-2 focus:ring-accentSoft disabled:cursor-not-allowed disabled:bg-surfaceMuted disabled:text-muted'
 
 export function Field({ label, hint, error, children }) {
   return (
@@ -36,20 +36,24 @@ export function Select({ className = '', children, ...props }) {
 
 export function Switch({ checked, onChange, label }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ink">
-      <span
+    <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
+      <button
+        type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-          checked ? 'bg-accent' : 'bg-border'
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+          checked ? 'bg-accent' : 'bg-borderStrong'
         }`}
       >
+        {/* The knob is positioned rather than translated so RTL flips it for
+            free — a translateX would have slid it the wrong way. */}
         <span
-          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
-          style={{ transform: checked ? 'translateX(18px)' : 'translateX(4px)' }}
+          className={`absolute inline-block h-3.5 w-3.5 rounded-full bg-white shadow-hairline transition-[inset-inline-start] duration-200 ${
+            checked ? 'start-[1.125rem]' : 'start-1'
+          }`}
         />
-      </span>
+      </button>
       {label}
     </label>
   )
