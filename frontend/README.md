@@ -116,7 +116,8 @@ the console misreport what is actually stored.
 
 ### Translation coverage
 
-`en`, `hi` and `bn` are complete (308 keys). The other 43 locales carry the
+`en`, `hi`, `bn`, `mr`, `ta` and `te` are complete (308 keys) — English plus
+the five most widely spoken Indian languages. The other 40 locales carry the
 **shell** — navigation, landing page, sign-in screen, and the theme/language
 controls — and fall back to English for the rest. `npm run check:i18n` prints
 the split on every run, so partial coverage never looks like full coverage.

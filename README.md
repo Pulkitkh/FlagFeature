@@ -221,8 +221,9 @@ the data underneath: flag keys, `boolean`/`true`/`false`, JSON payloads, reason
 codes like `percentage_rollout`, and paths like `POST /evaluate`. Translating
 those would make the console misreport what the API actually stores.
 
-English, Hindi and Bengali are complete (308 keys). The other 43 locales carry
-the shell and fall back to English for the rest, so a partially translated
+English, Hindi, Bengali, Marathi, Tamil and Telugu are complete (308 keys).
+The other 40 locales carry the shell and fall back to English, so a partially
+translated
 locale degrades into a readable mixed interface rather than a broken one —
 `npm run check:i18n` prints the split so partial coverage never looks like full
 coverage. Filling one in is data entry, not code.
