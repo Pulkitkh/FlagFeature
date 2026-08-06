@@ -47,7 +47,7 @@ export default function Dropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 py-2.5 text-left text-sm shadow-hairline outline-none transition-colors ${
+        className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 text-start text-[13px] outline-none transition-colors ${
           open ? 'border-accent ring-2 ring-accentSoft' : 'border-border hover:border-borderStrong'
         }`}
       >
@@ -58,7 +58,7 @@ export default function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-20 mt-1.5 max-h-64 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-floating">
+        <div className="absolute inset-x-0 z-20 mt-1.5 max-h-64 animate-fade-in overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-floating">
           {options.length === 0 && (
             <div className="px-3 py-2.5 text-sm text-muted">{t('noOptions')}</div>
           )}

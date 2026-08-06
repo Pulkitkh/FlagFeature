@@ -20,60 +20,73 @@ export default function Sidebar() {
     : NAV_ITEMS
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-3 lg:flex">
-      <div className="flex flex-col h-full rounded-xl border border-border bg-surface">
-        <NavLink
-          to="/"
-          className="flex items-center gap-2.5 rounded-t-xl px-4 pb-5 pt-5 transition-colors hover:bg-surfaceMuted"
-        >
-          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink text-white">
-            <Flag className="h-4 w-4" strokeWidth={2.25} />
-            <span className="signal-dot signal-dot--live absolute -end-0.5 -top-0.5 bg-accent ring-2 ring-surface" />
+    <aside className="hidden w-[236px] shrink-0 flex-col border-e border-border bg-surface lg:flex">
+      <NavLink
+        to="/"
+        className="flex items-center gap-2.5 border-b border-border px-5 py-[18px] transition-colors hover:bg-surfaceMuted"
+      >
+        <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-ink text-surface">
+          <Flag className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span className="signal-dot signal-dot--live absolute -end-1 -top-1 bg-accent ring-2 ring-surface" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-display text-[15px] font-extrabold leading-none tracking-[-0.02em] text-ink">
+            FlagForge
           </span>
-          <div>
-            <span className="block font-display text-[15px] font-semibold leading-tight tracking-tight text-ink">FlagForge</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{t('tagline')}</span>
-          </div>
-        </NavLink>
-
-        <div className="px-4 pb-2 pt-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-            {t('navManage')}
+          <span className="mt-1 block font-mono text-[9px] font-medium uppercase leading-none tracking-[0.16em] text-muted">
+            {t('tagline')}
           </span>
-        </div>
+        </span>
+      </NavLink>
 
-        <nav className="flex flex-col gap-0.5 px-2.5">
-          {navItems.map(({ to, labelKey, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 ${
-                  isActive
-                    ? 'bg-accentSoft font-semibold text-accentDark'
-                    : 'text-muted hover:bg-surfaceMuted hover:text-ink'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span className={`absolute start-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full transition-opacity ${isActive ? 'bg-accent opacity-100' : 'opacity-0'}`} />
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-accent' : 'text-muted group-hover:text-ink'}`} />
-                  {t(labelKey)}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
+      <div className="px-5 pb-2 pt-5">
+        <span className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted">
+          {t('navManage')}
+        </span>
+      </div>
 
-        <div className="mt-auto p-3">
-          <div className="rounded-lg border border-border bg-surfaceMuted p-3.5">
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-              <span className="signal-dot signal-dot--live bg-good" />
-              {t('milestoneBadge')}
-            </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted">{t('milestoneCopy')}</p>
-          </div>
+      <nav className="flex flex-col px-2.5">
+        {navItems.map(({ to, labelKey, icon: Icon }, index) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] transition-colors duration-150 ${
+                isActive
+                  ? 'bg-surfaceMuted font-semibold text-ink'
+                  : 'font-medium text-muted hover:bg-surfaceMuted/60 hover:text-ink'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {/* The active marker is a solid ink bar, matching the primary
+                    button — one "you are here" language across the console. */}
+                <span
+                  className={`absolute start-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-e-full bg-ink transition-transform duration-150 ${
+                    isActive ? 'scale-y-100' : 'scale-y-0'
+                  }`}
+                />
+                <Icon
+                  className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-muted group-hover:text-ink'}`}
+                />
+                <span className="flex-1 truncate">{t(labelKey)}</span>
+                <span className="index-marker opacity-0 transition-opacity group-hover:opacity-100">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="mt-auto p-3">
+        <div className="rounded-lg border border-border bg-surfaceMuted p-3.5">
+          <p className="flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-ink">
+            <span className="signal-dot signal-dot--live bg-good" />
+            {t('milestoneBadge')}
+          </p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{t('milestoneCopy')}</p>
         </div>
       </div>
     </aside>

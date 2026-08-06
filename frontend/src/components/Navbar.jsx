@@ -22,24 +22,22 @@ export default function Navbar({ title, breadcrumb }) {
   }, [])
 
   const isOk = health?.status === 'ok'
-  const healthLabel = health === null ? t('apiChecking') : isOk ? t('apiConnected') : t('apiUnreachable')
+  const healthLabel =
+    health === null ? t('apiChecking') : isOk ? t('apiConnected') : t('apiUnreachable')
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface/90 px-6 backdrop-blur-md">
-      <div className="min-w-0">
-        {breadcrumb && (
-          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-            {breadcrumb}
-          </p>
-        )}
-        <h1 className="truncate font-display text-base font-semibold tracking-tight text-ink">
-          {title}
-        </h1>
-      </div>
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-border bg-surface/85 px-5 backdrop-blur-md">
+      {/* The path reads as one monospace line rather than a stacked title —
+          a console tells you where you are in a single glance. */}
+      <p className="min-w-0 truncate font-mono text-[11px] tracking-tight text-muted">
+        {breadcrumb && <span className="uppercase tracking-[0.14em]">{breadcrumb}</span>}
+        {breadcrumb && <span className="mx-2 text-borderStrong">/</span>}
+        <span className="font-medium text-ink">{title}</span>
+      </p>
 
       <div className="flex shrink-0 items-center gap-2">
-        <div
-          className="hidden items-center gap-1.5 rounded-md border border-border bg-surfaceMuted px-2.5 py-1.5 text-xs font-medium text-muted lg:flex"
+        <span
+          className="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted xl:flex"
           title={healthLabel}
         >
           <span
@@ -48,7 +46,8 @@ export default function Navbar({ title, breadcrumb }) {
             }`}
           />
           {healthLabel}
-        </div>
+        </span>
+        <span className="hidden h-5 w-px bg-border xl:block" />
         <EnvironmentSwitcher />
         <LanguageSwitcher />
         <ThemeToggle />

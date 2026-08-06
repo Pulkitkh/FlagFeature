@@ -65,12 +65,14 @@ export default function CleanupPanel() {
     <Card padded={false} className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-warn/20 bg-warnSoft text-warn">
-            <Sparkles className="h-4 w-4" />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-surfaceMuted text-warn">
+            <Sparkles className="h-3.5 w-3.5" />
           </span>
           <div>
-            <h2 className="text-sm font-semibold text-ink">{t('cleanupTitle')}</h2>
-            <p className="text-xs text-muted">{t('cleanupHint')}</p>
+            <h2 className="font-display text-[14px] font-bold tracking-tight text-ink">
+              {t('cleanupTitle')}
+            </h2>
+            <p className="text-[11px] leading-relaxed text-muted">{t('cleanupHint')}</p>
           </div>
         </div>
 

@@ -1,17 +1,27 @@
 import { Loader2 } from 'lucide-react'
 
+/**
+ * Primary is ink, not the accent colour. A near-black button reads as the one
+ * committed action on a page; reserving the blue for selection and for the
+ * chart keeps "this is interactive" and "this is data" from competing.
+ */
 const VARIANTS = {
-  primary: 'border border-accentDark bg-accent text-white shadow-hairline hover:bg-accentDark disabled:hover:bg-accent',
-  secondary: 'border border-border bg-surface text-ink shadow-hairline hover:border-borderStrong hover:bg-surfaceMuted',
-  danger: 'border border-bad/25 bg-badSoft text-bad hover:bg-bad hover:text-white hover:border-bad',
-  success: 'border border-good/25 bg-goodSoft text-good hover:bg-good hover:text-white hover:border-good',
+  primary:
+    'border border-ink bg-ink text-surface hover:bg-ink/90 disabled:hover:bg-ink',
+  secondary:
+    'border border-border bg-surface text-ink hover:border-borderStrong hover:bg-surfaceMuted',
+  accent:
+    'border border-accentDark bg-accent text-white hover:bg-accentDark disabled:hover:bg-accent',
+  danger: 'border border-bad/30 bg-badSoft text-bad hover:bg-bad hover:text-white hover:border-bad',
+  success:
+    'border border-good/30 bg-goodSoft text-good hover:bg-good hover:text-white hover:border-good',
   ghost: 'border border-transparent text-muted hover:bg-surfaceMuted hover:text-ink',
 }
 
 const SIZES = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-5 py-2.5 text-sm',
+  sm: 'h-8 px-3 text-xs',
+  md: 'h-9 px-4 text-[13px]',
+  lg: 'h-11 px-5 text-sm',
 }
 
 export default function Button({
@@ -27,13 +37,13 @@ export default function Button({
   return (
     <button
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-lg font-semibold tracking-tight transition-all duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (
-        Icon && <Icon className="h-4 w-4" />
+        Icon && <Icon className="h-3.5 w-3.5" />
       )}
       {children}
     </button>

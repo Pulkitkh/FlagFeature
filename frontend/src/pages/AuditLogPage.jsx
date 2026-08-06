@@ -14,11 +14,18 @@ import {
   EmptyState,
   Field,
   Input,
+  LeadCell,
   PageHeader,
+  Pager,
   Row,
   Table,
   TableSkeleton,
 } from '../components/ui'
+
+// A page that fits on screen without the scrollbar shrinking to a sliver. The
+// API returns the whole matching set, so paging happens here rather than as a
+// round trip per page.
+const PAGE_SIZE_OPTIONS = [10, 15, 25, 50]
 
 const ACTION_TONE = {
   created: 'good',
@@ -62,6 +69,8 @@ export default function AuditLogPage() {
   // environment switcher like every other page.
   const [scopeToEnvironment, setScopeToEnvironment] = useState(false)
   const [diffEntry, setDiffEntry] = useState(null)
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(15)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -83,6 +92,12 @@ export default function AuditLogPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Any change to the filters means the old page number points at a different
+  // slice of a different list — start again from the top.
+  useEffect(() => {
+    setPage(0)
+  }, [filters, scopeToEnvironment, pageSize])
 
   useEffect(() => {
     api.getAuditActors().then(setActors).catch(() => setActors([]))
@@ -125,6 +140,10 @@ export default function AuditLogPage() {
     () => Object.values(filters).some(Boolean) || scopeToEnvironment,
     [filters, scopeToEnvironment]
   )
+
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize))
+  const safePage = Math.min(page, pageCount - 1)
+  const visible = entries.slice(safePage * pageSize, safePage * pageSize + pageSize)
 
   function setFilter(name, value) {
     setFilters((current) => ({ ...current, [name]: value }))
@@ -254,18 +273,34 @@ export default function AuditLogPage() {
             />
           ) : (
             <>
-              <p className="mb-3 text-xs text-muted">
-                {filtersActive
-                  ? t('auditEntryCountFiltered', { count: entries.length })
-                  : t('auditEntryCount', { count: entries.length })}
-              </p>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted">
+                  {filtersActive
+                    ? t('auditEntryCountFiltered', { count: entries.length })
+                    : t('auditEntryCount', { count: entries.length })}
+                </p>
+                <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+                  {t('rowsPerPage')}
+                  <select
+                    value={pageSize}
+                    onChange={(event) => setPageSize(Number(event.target.value))}
+                    className="rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink outline-none focus:border-accent"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <Table columns={columns}>
-                {entries.map((entry) => (
+                {visible.map((entry) => (
                   <Row key={entry.id}>
-                    <Cell className="whitespace-nowrap font-mono text-xs text-muted">
+                    <LeadCell className="whitespace-nowrap font-mono text-[11px] text-muted tnum">
                       {new Date(entry.timestamp).toLocaleString()}
-                    </Cell>
+                    </LeadCell>
                     <Cell className="text-sm text-ink">{entry.actor}</Cell>
                     <Cell>
                       <span className="block truncate font-mono text-sm text-ink">
@@ -302,6 +337,23 @@ export default function AuditLogPage() {
                   </Row>
                 ))}
               </Table>
+
+              <Pager
+                page={safePage}
+                pageCount={pageCount}
+                onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+                onNext={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                labels={{
+                  previous: t('pagerPrevious'),
+                  next: t('pagerNext'),
+                  range: t('pagerRange', {
+                    from: safePage * pageSize + 1,
+                    to: Math.min(entries.length, (safePage + 1) * pageSize),
+                    total: entries.length,
+                  }),
+                  pageOf: t('pagerPageOf', { page: safePage + 1, pages: pageCount }),
+                }}
+              />
             </>
           )}
         </div>

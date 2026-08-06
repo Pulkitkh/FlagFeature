@@ -13,6 +13,7 @@ import {
   EmptyState,
   Field,
   Input,
+  LeadCell,
   Modal,
   PageHeader,
   Row,
@@ -94,7 +95,7 @@ export default function AccountsPage() {
             }
           />
 
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3">
             <StatCard label={t('statAccounts')} value={stats.total} icon={UserCheck} tone="accent" />
             <StatCard label={t('statAdmins')} value={stats.admins} icon={ShieldCheck} tone="good" />
             <StatCard
@@ -133,15 +134,15 @@ export default function AccountsPage() {
                 const isSelf = account.id === currentUser?.id
                 return (
                   <Row key={account.id}>
-                    <Cell>
-                      <span className="block truncate text-sm font-medium text-ink">
+                    <LeadCell>
+                      <span className="block truncate text-[13px] font-medium text-ink">
                         {account.name || '—'}
                         {isSelf && <span className="ms-2 text-xs text-muted">{t('labelYou')}</span>}
                       </span>
-                      <span className="block truncate font-mono text-xs text-muted">
+                      <span className="block truncate font-mono text-[11px] text-muted">
                         {account.email}
                       </span>
-                    </Cell>
+                    </LeadCell>
                     <Cell>
                       <div className="w-48">
                         <Dropdown

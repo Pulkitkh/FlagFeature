@@ -36,9 +36,13 @@ export default {
         hoverBg: token('--hover-bg'),
       },
       fontFamily: {
-        display: ['"Space Grotesk"', 'sans-serif'],
-        sans: ['Inter', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        // Cabinet Grotesk for headings, Satoshi for everything else, JetBrains
+        // Mono for anything that came out of the API. Fallbacks are real font
+        // stacks rather than a bare `sans-serif` so a blocked webfont degrades
+        // to something with similar metrics instead of Times.
+        display: ['"Cabinet Grotesk"', 'Satoshi', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Satoshi', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
         // Shadow strength is a variable too: a 6% black shadow is invisible on
@@ -52,14 +56,21 @@ export default {
         content: '1280px',
       },
       backgroundImage: {
-        grid: 'linear-gradient(rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px)',
+        dots: 'radial-gradient(rgb(var(--dot) / var(--dot-alpha)) 1px, transparent 1px)',
       },
       backgroundSize: {
-        grid: '28px 28px',
+        dots: '22px 22px',
+      },
+      borderRadius: {
+        // One step tighter than Tailwind's defaults: the instrument look wants
+        // corners that read as machined rather than as soft cards.
+        xl: '0.625rem',
+        '2xl': '0.875rem',
       },
       animation: {
         'rise-in': 'rise-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-in': 'fade-in 0.4s ease both',
+        'trace-in': 'trace-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
       },
     },
   },

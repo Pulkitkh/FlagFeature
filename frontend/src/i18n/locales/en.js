@@ -371,4 +371,44 @@ export default {
   resetPasswordFor: 'Reset password for {email}',
   resetPasswordHint:
     "They'll need this to sign in. Existing sessions keep working until the token expires.",
+
+  // ------------------------------------------------- flag detail: tabs/trace
+  tabOverview: 'Overview',
+  tabTargeting: 'Targeting',
+  tabAnalytics: 'Analytics',
+  tabHistory: 'History',
+  decisionTrace: 'Decision trace',
+  decisionTraceHint: 'Which rule decided the value, for the user in the test panel below.',
+  stepKillSwitch: 'Kill switch',
+  stepUserTargeting: 'User targeting',
+  stepGroupTargeting: 'Group targeting',
+  stepPercentage: 'Percentage rollout',
+  stepEnvOverride: 'Environment override',
+  stepDefault: 'Default value',
+  traceDecided: 'Decided here',
+  traceSkipped: 'No match',
+  traceNotReached: 'Not reached',
+  traceResult: 'Resolved value',
+  envMatrix: 'Across environments',
+  envMatrixHint: 'How this flag resolves everywhere, right now.',
+
+  // ------------------------------------------------------- group management
+  manageGroup: 'Manage {key}',
+  renameGroup: 'Rename group',
+  renameGroupWarning:
+    'Targeting rules that reference the old key keep pointing at it — update them after renaming.',
+  newGroupKey: 'New group key',
+  addMembers: 'Add members',
+  addMembersHint: 'Comma or newline separated. Existing members are kept.',
+  deleteGroup: 'Delete group',
+  deleteGroupConfirm: 'Delete group "{key}" and all {count} memberships?',
+  memberCount: '{count} members',
+  noMembers: 'This group has no members.',
+
+  // ---------------------------------------------------------------- pagination
+  pagerPrevious: 'Previous',
+  pagerNext: 'Next',
+  pagerRange: 'Showing {from}–{to} of {total}',
+  pagerPageOf: 'Page {page} of {pages}',
+  rowsPerPage: 'Per page',
 }

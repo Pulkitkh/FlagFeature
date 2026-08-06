@@ -115,22 +115,23 @@ export default function FlagsPage() {
             }
           />
 
-          <div className="mb-6 flex flex-col justify-between gap-3 rounded-xl border border-border bg-surface px-5 py-4 shadow-hairline sm:flex-row sm:items-center">
-            <div className="flex items-center gap-3">
+          <div className="mb-6 flex flex-col justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 sm:flex-row sm:items-center">
+            <p className="flex items-center gap-2.5 font-mono text-[11px] text-muted">
               <span className="signal-dot signal-dot--live bg-good" />
-              <div>
-                <p className="text-sm font-semibold text-ink">{t('engineOnline')}</p>
-                <p className="text-xs text-muted">{t('engineOnlineHint')}</p>
-              </div>
-            </div>
-            <span className="shrink-0 rounded-md border border-border bg-surfaceMuted px-2.5 py-1 text-[11px] font-medium text-muted">
+              <span className="font-medium uppercase tracking-[0.12em] text-ink">
+                {t('engineOnline')}
+              </span>
+              <span className="hidden text-borderStrong md:inline">/</span>
+              <span className="hidden md:inline">{t('engineOnlineHint')}</span>
+            </p>
+            <span className="shrink-0 font-mono text-[11px] text-muted tnum">
               {t('flagsTracked', { count: stats.total })}
             </span>
           </div>
 
           <CleanupPanel />
 
-          <Section>
+          <Section index={1}>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <StatCard label={t('statTotalFlags')} value={stats.total} icon={Flag} tone="accent" />
               <StatCard
@@ -154,8 +155,8 @@ export default function FlagsPage() {
             </div>
           </Section>
 
-          <Section>
-            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-hairline sm:flex-row sm:items-center">
+          <Section index={2}>
+            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                 <Input

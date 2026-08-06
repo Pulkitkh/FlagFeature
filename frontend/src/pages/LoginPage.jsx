@@ -69,50 +69,58 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full">
       {/* Left: the pitch. Hidden on small screens, where the form is all that matters. */}
-      <aside className="hidden w-1/2 flex-col justify-between border-e border-border bg-surface p-12 lg:flex">
-        <Link to="/" className="flex w-fit items-center gap-2.5">
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white">
+      <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-ink p-12 text-surface lg:flex">
+        {/* A faint dot field on the slab, matching the console shell. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+
+        <Link to="/" className="relative flex w-fit items-center gap-2.5">
+          <span className="relative flex h-8 w-8 items-center justify-center rounded-md bg-surface text-ink">
             <Flag className="h-4 w-4" strokeWidth={2.5} />
-            <span className="signal-dot signal-dot--live absolute -end-0.5 -top-0.5 bg-good ring-2 ring-surfaceMuted" />
           </span>
           <span>
-            <span className="block font-display text-[15px] font-semibold leading-tight text-ink">
+            <span className="block font-display text-[15px] font-extrabold leading-none tracking-[-0.02em]">
               FlagForge
             </span>
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+            <span className="mt-1 block font-mono text-[9px] font-medium uppercase leading-none tracking-[0.16em] opacity-60">
               {t('tagline')}
             </span>
           </span>
         </Link>
 
-        <div className="max-w-md">
-          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight text-ink">
+        <div className="relative max-w-md">
+          <h2 className="font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em]">
             {t('heroTitle')}
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted">{t('heroSubtitle')}</p>
+          <p className="mt-4 text-sm leading-relaxed opacity-70">{t('heroSubtitle')}</p>
 
-          <ul className="mt-8 space-y-5">
-            {HIGHLIGHTS.map(({ icon: Icon, titleKey, copyKey }) => (
-              <li key={titleKey} className="flex gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-accent">
-                  <Icon className="h-4 w-4" />
+          <ul className="mt-10 space-y-px overflow-hidden rounded-lg border border-surface/15">
+            {HIGHLIGHTS.map(({ icon: Icon, titleKey, copyKey }, index) => (
+              <li key={titleKey} className="flex items-start gap-3 bg-surface/[0.06] px-4 py-3.5">
+                <Icon className="mt-0.5 h-4 w-4 shrink-0 opacity-70" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold">{t(titleKey)}</span>
+                  <span className="mt-0.5 block text-[11px] opacity-60">{t(copyKey)}</span>
                 </span>
-                <span>
-                  <span className="block text-sm font-semibold text-ink">{t(titleKey)}</span>
-                  <span className="block text-xs text-muted">{t(copyKey)}</span>
+                <span className="font-mono text-[10px] opacity-40">
+                  {String(index + 1).padStart(2, '0')}
                 </span>
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-xs text-muted">
-          {t('footerEval')}
-        </p>
+        <p className="relative font-mono text-[11px] opacity-50">{t('footerEval')}</p>
       </aside>
 
       {/* Right: the form. */}
-      <main className="relative flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+      <main className="relative flex w-full flex-col items-center justify-center p-6 lg:w-[54%]">
         {/* Both preferences are reachable before signing in — someone who can't
             read English needs the language picker on this screen, not inside. */}
         <div className="absolute end-6 top-6 flex items-center gap-2">
@@ -135,10 +143,10 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink">
+          <h1 className="font-display text-[26px] font-bold tracking-[-0.025em] text-ink">
             {t('loginTitle')}
           </h1>
-          <p className="mt-1.5 text-sm text-muted">{t('loginSubtitle')}</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">{t('loginSubtitle')}</p>
 
           {apiReachable === false && (
             <Card className="mt-6 border-bad/25 bg-badSoft">
@@ -197,7 +205,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 rounded-lg border border-border bg-surfaceMuted px-3.5 py-3 text-xs leading-relaxed text-muted">
+          <p className="mt-6 rounded-lg border border-dashed border-borderStrong px-3.5 py-3 font-mono text-[11px] leading-relaxed text-muted">
             {t('loginFirstRun', { email: 'admin@flagforge.local', password: 'admin12345' })}
           </p>
         </div>
