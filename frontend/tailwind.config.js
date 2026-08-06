@@ -28,6 +28,7 @@ export default {
         accent: token('--accent'),
         accentDark: token('--accent-dark'),
         accentSoft: token('--accent-soft'),
+        accentAlt: token('--accent-alt'),
         good: token('--good'),
         goodSoft: token('--good-soft'),
         warn: token('--warn'),
@@ -37,11 +38,11 @@ export default {
         hoverBg: token('--hover-bg'),
       },
       fontFamily: {
-        // Newsreader carries page titles only. Plex Sans is the working face;
-        // Plex Mono is its sibling and carries anything the API produced.
-        display: ['Newsreader', 'Georgia', 'Cambria', 'serif'],
-        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // Source Serif carries titles, Source Sans does the work, Source Code
+        // carries anything the API produced. Siblings, so they cut together.
+        display: ['"Source Serif 4"', 'Charter', 'Georgia', 'serif'],
+        sans: ['"Source Sans 3"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"Source Code Pro"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
         // Shadow strength is a variable too: a 6% black shadow is invisible on

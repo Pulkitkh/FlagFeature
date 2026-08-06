@@ -69,7 +69,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen w-full">
       {/* Left: the pitch. Hidden on small screens, where the form is all that matters. */}
-      <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-ink p-12 text-surface lg:flex">
+      {/* The slab carries the same violet-to-teal grade as the console shell,
+          so the first screen anyone sees is the palette rather than a black
+          rectangle. */}
+      <aside className="relative hidden w-[46%] flex-col justify-between overflow-hidden bg-ink bg-gradient-to-br from-accent/40 via-transparent to-accentAlt/30 p-12 text-surface lg:flex">
         {/* A faint dot field on the slab, matching the console shell. */}
         <span
           aria-hidden="true"

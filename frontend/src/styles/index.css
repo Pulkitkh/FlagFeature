@@ -5,19 +5,22 @@
 /*
  * ── FlagForge palette ────────────────────────────────────────────────────
  *
- * Graded rather than flat. Two things do the grading:
+ * Graded rather than flat. Three things do the grading:
  *
  *  1. Every neutral is tinted toward the accent's hue, so the greys are
  *     violet-leaning rather than dead. A pure #FFF/#000 ramp is what makes an
  *     interface look unfinished; a consistent cast is what makes it look
  *     considered.
- *  2. The page sits on a soft two-stop wash instead of a flat fill, and the
+ *  2. The page sits on a soft three-stop wash instead of a flat fill, and the
  *     sidebar is a half-step off the content area — so panels separate by tone
  *     instead of by yet another border.
+ *  3. A second hue (teal) runs underneath the violet. Two hues at low opacity
+ *     read as light falling across a surface; one hue reads as a filter.
  *
  * The accent is slot 7 (violet) of the validated data-viz palette, which is
  * also what the evaluation chart plots with: the interactive colour and the
- * series colour are one decision, not two.
+ * series colour are one decision, not two. The secondary is slot 3 (teal) from
+ * the same palette, so the two never fight.
  *
  * Colours are "R G B" triples so Tailwind's opacity modifiers (bg-surface/60)
  * keep working, and every value swaps on `<html data-theme>`.
@@ -25,37 +28,41 @@
 :root {
   color-scheme: light;
 
-  /* Warm paper, very slightly violet — reads as stock, not as #FFFFFF. */
-  --bg: 249 248 251;
-  --surface: 255 255 255;
-  --surface-muted: 244 243 248;
-  --surface-sunken: 243 242 248;
-  --border: 228 226 234;
-  --border-strong: 199 195 209;
-  --ink: 28 25 32;
-  --muted: 108 102 116;
+  /* Warm paper, visibly violet-cast — reads as stock, not as #FFFFFF. */
+  --bg: 247 245 251;
+  --surface: 255 254 255;
+  --surface-muted: 242 240 249;
+  --surface-sunken: 238 236 247;
+  --border: 226 221 238;
+  --border-strong: 194 187 213;
+  --ink: 26 22 34;
+  --muted: 103 96 118;
 
   /* Slot 7 of the validated data-viz palette. */
   --accent: 74 58 167;
   --accent-dark: 56 43 130;
-  --accent-soft: 238 235 250;
+  --accent-soft: 237 233 251;
   --accent-tint: 74 58 167;
 
+  /* Slot 3, the secondary hue: washes and rules only, never interaction. */
+  --accent-alt: 14 116 128;
+
   --good: 21 105 72;
-  --good-soft: 226 242 234;
+  --good-soft: 224 242 233;
   --warn: 146 87 10;
   --warn-soft: 250 238 216;
   --bad: 168 42 32;
-  --bad-soft: 251 233 231;
-  --hover-bg: 238 236 245;
+  --bad-soft: 251 232 230;
+  --hover-bg: 236 232 247;
 
   /* Shell decoration. */
-  --dot: 28 25 32;
-  --dot-alpha: 0.045;
-  --wash-top: 0.11;
-  --wash-bottom: 0.05;
-  --scrollbar-thumb: 209 205 199;
-  --scrollbar-thumb-hover: 180 174 168;
+  --dot: 74 58 167;
+  --dot-alpha: 0.06;
+  --wash-top: 0.22;
+  --wash-mid: 0.1;
+  --wash-bottom: 0.13;
+  --scrollbar-thumb: 205 199 218;
+  --scrollbar-thumb-hover: 176 168 194;
 
   --shadow-color: 28 25 32;
   --shadow-hairline: 0.05;
@@ -70,20 +77,23 @@
   color-scheme: dark;
 
   /* Warm charcoal with the same violet cast, not a neutral black. */
-  --bg: 20 19 24;
-  --surface: 27 25 32;
-  --surface-muted: 35 33 42;
-  --surface-sunken: 23 22 28;
-  --border: 51 48 60;
-  --border-strong: 74 70 87;
-  --ink: 240 238 244;
-  --muted: 160 155 173;
+  --bg: 19 17 25;
+  --surface: 27 24 35;
+  --surface-muted: 35 32 45;
+  --surface-sunken: 23 21 30;
+  --border: 52 48 65;
+  --border-strong: 76 71 94;
+  --ink: 240 237 246;
+  --muted: 162 156 178;
 
   /* Slot 7, dark step. */
   --accent: 144 133 233;
   --accent-dark: 176 168 243;
-  --accent-soft: 40 35 66;
+  --accent-soft: 41 35 68;
   --accent-tint: 144 133 233;
+
+  /* Slot 3, dark step. */
+  --accent-alt: 90 197 199;
 
   --good: 63 200 138;
   --good-soft: 16 41 30;
@@ -91,14 +101,15 @@
   --warn-soft: 44 34 19;
   --bad: 240 118 106;
   --bad-soft: 47 23 22;
-  --hover-bg: 42 39 51;
+  --hover-bg: 44 40 57;
 
-  --dot: 240 238 244;
-  --dot-alpha: 0.045;
-  --wash-top: 0.18;
-  --wash-bottom: 0.09;
-  --scrollbar-thumb: 61 57 72;
-  --scrollbar-thumb-hover: 86 81 101;
+  --dot: 176 168 243;
+  --dot-alpha: 0.055;
+  --wash-top: 0.24;
+  --wash-mid: 0.1;
+  --wash-bottom: 0.12;
+  --scrollbar-thumb: 62 57 76;
+  --scrollbar-thumb-hover: 88 82 107;
 
   --shadow-color: 0 0 0;
   --shadow-hairline: 0.3;
@@ -118,14 +129,15 @@ html {
 body {
   min-width: 320px;
   color: rgb(var(--ink));
-  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: rgb(var(--bg));
 }
 
 /*
- * The grade itself: a warm accent wash falling from the top and a cooler one
- * rising from the bottom, with a barely-there dot field over both. Fixed, so
- * it stays put while content scrolls past it.
+ * The grade itself: violet falling from the top-left, teal rising from the
+ * bottom-right, and a wide violet haze behind the middle of the page so the
+ * two ends don't read as two separate stains. A barely-there dot field sits
+ * over all three. Fixed, so it stays put while content scrolls past it.
  */
 body::before {
   position: fixed;
@@ -135,17 +147,22 @@ body::before {
   pointer-events: none;
   background-image:
     radial-gradient(
-      ellipse 80rem 40rem at 15% -10%,
+      ellipse 80rem 40rem at 12% -12%,
       rgb(var(--accent-tint) / var(--wash-top)),
-      transparent 60%
+      transparent 62%
     ),
     radial-gradient(
-      ellipse 60rem 30rem at 95% 110%,
-      rgb(var(--good) / var(--wash-bottom)),
-      transparent 60%
+      ellipse 70rem 45rem at 88% 108%,
+      rgb(var(--accent-alt) / var(--wash-bottom)),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 90rem 50rem at 70% 35%,
+      rgb(var(--accent-tint) / var(--wash-mid)),
+      transparent 65%
     ),
     radial-gradient(rgb(var(--dot) / var(--dot-alpha)) 1px, transparent 1px);
-  background-size: auto, auto, 24px 24px;
+  background-size: auto, auto, auto, 24px 24px;
 }
 
 /* Numbers that change under you shouldn't jitter. */

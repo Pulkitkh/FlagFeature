@@ -318,7 +318,9 @@ export default function AuditLogPage() {
                         {ACTION_KEY[entry.action] ? t(ACTION_KEY[entry.action]) : entry.action}
                       </Badge>
                     </Cell>
-                    <Cell className="max-w-xs">
+                    {/* Capped so the diff button stays on screen at 1440px —
+                        the full summary is in the title and the diff modal. */}
+                    <Cell className="max-w-[250px]">
                       <span className="block truncate font-mono text-xs text-muted" title={entry.summary}>
                         {entry.summary || '—'}
                       </span>

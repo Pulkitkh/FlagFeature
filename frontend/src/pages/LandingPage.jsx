@@ -44,7 +44,11 @@ export default function LandingPage() {
   const enter = isAuthenticated ? '/flags' : '/login'
 
   return (
-    <div className="min-h-screen">
+    // The page wash is fixed to the viewport, which leaves a long marketing
+    // page mostly untinted below the fold. This gradient scrolls with the
+    // document, so the violet carries down into the hero instead of stopping
+    // at the header.
+    <div className="min-h-screen bg-gradient-to-b from-accentSoft to-transparent to-55%">
       <header className="sticky top-0 z-20 border-b border-border bg-bg/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-4 px-6">
           <div className="flex items-center gap-2.5">
@@ -174,7 +178,7 @@ export default function LandingPage() {
 
         {/* ── Closing ──────────────────────────────────────────────── */}
         <section className="border-t border-border py-20">
-          <div className="flex flex-col items-start justify-between gap-8 rounded-xl border border-border bg-surface p-9 sm:flex-row sm:items-center">
+          <div className="flex flex-col items-start justify-between gap-8 rounded-xl border border-border bg-surface bg-gradient-to-r from-surface from-45% to-accentAlt/15 p-9 sm:flex-row sm:items-center">
             <div className="min-w-0">
               <h2 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-ink">
                 {t('loginTitle')}

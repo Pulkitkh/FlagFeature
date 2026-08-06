@@ -68,19 +68,19 @@ export default function DecisionTrace({ result, loading }) {
             <div
               className={`relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
                 isActive
-                  ? 'border-accentDark bg-accent text-white shadow-soft'
+                  ? 'border-accentDark bg-accent text-bg shadow-soft'
                   : isSkipped
                     ? 'border-border bg-surface text-muted'
                     : 'border-dashed border-border bg-transparent text-muted/60'
               }`}
             >
               <span
-                className={`font-mono text-[10px] tnum ${isActive ? 'text-white/70' : 'text-muted/70'}`}
+                className={`font-mono text-[10px] tnum ${isActive ? 'text-bg/70' : 'text-muted/70'}`}
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
 
-              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : ''}`} />
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-bg' : ''}`} />
 
               <span
                 className={`min-w-0 flex-1 truncate text-[13px] ${
@@ -91,7 +91,7 @@ export default function DecisionTrace({ result, loading }) {
               </span>
 
               {isActive && (
-                <span className="flex items-center gap-1.5 rounded-md bg-surface/15 px-2 py-0.5 text-[11px] font-semibold">
+                <span className="flex items-center gap-1.5 rounded-md bg-bg/15 px-2 py-0.5 text-[11px] font-semibold">
                   <Check className="h-3 w-3" />
                   {t('traceDecided')}
                 </span>

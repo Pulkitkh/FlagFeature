@@ -115,7 +115,9 @@ export default function FlagsPage() {
             }
           />
 
-          <div className="mb-6 flex flex-col justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 sm:flex-row sm:items-center">
+          {/* Tinted from the "good" end so the strip reads as a health line at
+              a glance, before the words are read. */}
+          <div className="mb-6 flex flex-col justify-between gap-2 rounded-xl border border-border bg-surface bg-gradient-to-r from-goodSoft to-surface to-45% px-4 py-2.5 sm:flex-row sm:items-center">
             <p className="flex items-center gap-2.5 text-[12px] text-muted">
               <span className="signal-dot signal-dot--live bg-good" />
               <span className="font-medium text-ink">

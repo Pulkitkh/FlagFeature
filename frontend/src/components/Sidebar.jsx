@@ -20,7 +20,10 @@ export default function Sidebar() {
     : NAV_ITEMS
 
   return (
-    <aside className="hidden w-[236px] shrink-0 flex-col border-e border-border bg-surfaceSunken lg:flex">
+    // The gradient is the same violet-to-teal grade the page wash uses, run
+    // vertically down the rail — so the navigation reads as part of the shell
+    // rather than as a grey column bolted to the side of it.
+    <aside className="hidden w-[236px] shrink-0 flex-col border-e border-border bg-surfaceSunken bg-gradient-to-b from-accent/[0.09] via-transparent to-accentAlt/[0.07] lg:flex">
       <NavLink
         to="/"
         className="flex items-center gap-2.5 border-b border-border px-5 py-[18px] transition-colors hover:bg-surfaceMuted"

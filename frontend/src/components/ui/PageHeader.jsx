@@ -1,9 +1,8 @@
 import { useId } from 'react'
 
 /**
- * Page title block. The eyebrow is monospace and uppercase so the page's
- * identity reads as a label on an instrument rather than as a heading in a
- * document — it also gives the display face something to sit against.
+ * Page title block: an optional breadcrumb, the title in the serif, a short
+ * description, and a meta line under the rule for whatever the page counts.
  */
 export function PageHeader({ title, description, action, breadcrumb, meta }) {
   return (
@@ -25,10 +24,11 @@ export function PageHeader({ title, description, action, breadcrumb, meta }) {
         {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </div>
 
-      {/* A hairline with an accent lead-in: the rule that separates the title
-          from the page also points at where the content starts. */}
+      {/* A hairline that starts in the accent, passes through the secondary
+          hue and dissolves into the border: the rule separating the title from
+          the page also carries the palette across it. */}
       <div className="mt-6 flex items-center gap-0">
-        <span className="h-px w-10 bg-accent" />
+        <span className="h-px w-28 bg-gradient-to-r from-accent via-accentAlt to-border" />
         <span className="h-px flex-1 bg-border" />
       </div>
 
@@ -41,10 +41,7 @@ export function PageHeader({ title, description, action, breadcrumb, meta }) {
   )
 }
 
-/**
- * A numbered block. `index` renders as `[03]` in the margin — the numbering is
- * what makes a long page feel surveyed rather than endless.
- */
+/** A titled block within a page, with an optional action on the same line. */
 export function Section({ title, description, action, children, className = '' }) {
   const headingId = useId()
 

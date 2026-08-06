@@ -15,7 +15,7 @@ export function Table({ columns, children }) {
       <div className="overflow-x-auto">
         <table className="w-full text-start text-sm">
           {/* Sticky so the header stays readable while a long list scrolls. */}
-          <thead className="sticky top-0 z-[1] bg-surfaceMuted/95 backdrop-blur-sm">
+          <thead className="sticky top-0 z-[1] bg-accentSoft/70 backdrop-blur-sm">
             <tr className="border-b border-border">
               {columns.map((column, index) => {
                 const { label, align, className = '' } = columnOf(column)

@@ -159,7 +159,9 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
 
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+                {/* No negative left margin: it pulls the axis under the plot
+                    area and clips three-digit counts. */}
+                <BarChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke={colors.grid} strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -175,7 +177,7 @@ export default function EvaluationChart({ flagKey, environmentKey, environmentNa
                     tick={{ fill: colors.axis, fontSize: 11 }}
                     tickLine={false}
                     axisLine={false}
-                    width={44}
+                    width={48}
                   />
                   <Tooltip
                     cursor={{ fill: colors.grid, fillOpacity: 0.5 }}
