@@ -137,7 +137,7 @@ export function Pager({ page, pageCount, total, from, to, onPrevious, onNext, la
 
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-2.5">
-      <p className="font-mono text-[11px] text-muted tnum">
+      <p className="text-[12px] text-muted tnum">
         {labels.range} · {labels.pageOf}
       </p>
       <div className="flex items-center gap-1.5">

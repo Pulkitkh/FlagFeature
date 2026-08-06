@@ -41,7 +41,7 @@ export default function FlagTable({ flags, loading, error }) {
           <Cell>
             {/* `flag.type` is an API value; the label around it is prose, so it
                 translates while the underlying value never does. */}
-            <span className="font-mono text-[11px] uppercase tracking-wide text-muted">
+            <span className="text-[12px] text-muted">
               {TYPE_LABEL_KEY[flag.type] ? t(TYPE_LABEL_KEY[flag.type]) : flag.type}
             </span>
           </Cell>

@@ -284,7 +284,7 @@ export default function AuditLogPage() {
                   <select
                     value={pageSize}
                     onChange={(event) => setPageSize(Number(event.target.value))}
-                    className="rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink outline-none focus:border-accent"
+                    className="rounded-md border border-border bg-surface px-2 py-1 text-[12px] tnum text-ink outline-none focus:border-accent"
                   >
                     {PAGE_SIZE_OPTIONS.map((size) => (
                       <option key={size} value={size}>

@@ -120,9 +120,7 @@ export default function LandingPage() {
               the way it happens, and the divider is the round trip. */}
           <div className="animate-rise-in overflow-hidden rounded-xl border border-border bg-surface shadow-card">
             <div className="flex items-center justify-between border-b border-border bg-surfaceMuted px-4 py-2">
-              <span className="text-[11px] font-medium text-muted">
-                evaluate.http
-              </span>
+              <span className="font-mono text-[11px] text-muted">evaluate.http</span>
               <span className="flex gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-borderStrong" />
                 <span className="h-2 w-2 rounded-full bg-borderStrong" />
@@ -195,7 +193,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-content flex-col gap-2 px-6 font-mono text-[11px] text-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-content flex-col gap-2 px-6 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>{t('footerStack')}</p>
           <p>{t('footerEval')}</p>
         </div>

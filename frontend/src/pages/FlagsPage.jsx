@@ -116,7 +116,7 @@ export default function FlagsPage() {
           />
 
           <div className="mb-6 flex flex-col justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 sm:flex-row sm:items-center">
-            <p className="flex items-center gap-2.5 font-mono text-[11px] text-muted">
+            <p className="flex items-center gap-2.5 text-[12px] text-muted">
               <span className="signal-dot signal-dot--live bg-good" />
               <span className="font-medium text-ink">
                 {t('engineOnline')}
@@ -124,7 +124,7 @@ export default function FlagsPage() {
               <span className="hidden text-borderStrong md:inline">/</span>
               <span className="hidden md:inline">{t('engineOnlineHint')}</span>
             </p>
-            <span className="shrink-0 font-mono text-[11px] text-muted tnum">
+            <span className="shrink-0 text-[12px] text-muted tnum">
               {t('flagsTracked', { count: stats.total })}
             </span>
           </div>

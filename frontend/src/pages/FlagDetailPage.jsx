@@ -328,7 +328,7 @@ export default function FlagDetailPage() {
 
             {/* Metadata as one monospace strip: it is all API-side truth, so it
                 reads as a readout rather than as six labelled cards. */}
-            <dl className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-3 font-mono text-[11px]">
+            <dl className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-3 text-[12px]">
               <Meta label={t('fieldType')}>
                 {TYPE_LABEL_KEY[flag.type] ? t(TYPE_LABEL_KEY[flag.type]) : flag.type}
               </Meta>
@@ -754,7 +754,7 @@ function Meta({ label, children }) {
   return (
     <div className="flex items-baseline gap-1.5">
       <dt className="text-muted">{label}</dt>
-      <dd className="font-medium text-ink">{children}</dd>
+      <dd className="font-mono font-medium text-ink">{children}</dd>
     </div>
   )
 }

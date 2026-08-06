@@ -33,7 +33,7 @@ export function PageHeader({ title, description, action, breadcrumb, meta }) {
       </div>
 
       {meta && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] text-muted">
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] text-muted">
           {meta}
         </div>
       )}

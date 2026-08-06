@@ -108,7 +108,7 @@ export default function LoginPage() {
                   <span className="block text-[13px] font-semibold">{t(titleKey)}</span>
                   <span className="mt-0.5 block text-[11px] opacity-60">{t(copyKey)}</span>
                 </span>
-                <span className="font-mono text-[10px] opacity-40">
+                <span className="text-[11px] tnum opacity-40">
                   {String(index + 1).padStart(2, '0')}
                 </span>
               </li>
@@ -116,7 +116,7 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative font-mono text-[11px] opacity-50">{t('footerEval')}</p>
+        <p className="relative text-[12px] opacity-50">{t('footerEval')}</p>
       </aside>
 
       {/* Right: the form. */}
@@ -205,7 +205,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 rounded-lg border border-dashed border-borderStrong px-3.5 py-3 font-mono text-[11px] leading-relaxed text-muted">
+          <p className="mt-6 rounded-lg border border-dashed border-borderStrong px-3.5 py-3 text-[12px] leading-relaxed text-muted">
             {t('loginFirstRun', { email: 'admin@flagforge.local', password: 'admin12345' })}
           </p>
         </div>

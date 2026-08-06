@@ -29,7 +29,7 @@ export default function Navbar({ title, breadcrumb }) {
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b border-border bg-surface/85 px-5 backdrop-blur-md">
       {/* The path reads as one monospace line rather than a stacked title —
           a console tells you where you are in a single glance. */}
-      <p className="min-w-0 truncate font-mono text-[11px] tracking-tight text-muted">
+      <p className="min-w-0 truncate text-[12px] text-muted">
         {breadcrumb && <span>{breadcrumb}</span>}
         {breadcrumb && <span className="mx-2 text-borderStrong">/</span>}
         <span className="font-medium text-ink">{title}</span>
