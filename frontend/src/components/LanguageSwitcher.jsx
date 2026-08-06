@@ -111,7 +111,7 @@ export default function LanguageSwitcher({ className = '', align = 'end' }) {
 
             {groups.map(([region, entries]) => (
               <div key={region}>
-                <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                <p className="px-3 pb-1 pt-3 text-[11px] font-semibold text-muted">
                   {region}
                 </p>
                 {entries.map((entry) => {

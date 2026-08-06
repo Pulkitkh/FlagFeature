@@ -155,7 +155,7 @@ export default function GroupsPage() {
             }
           />
 
-          <Section index={1}>
+          <Section>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               <StatCard
                 label={t('fieldEnvironment')}
@@ -173,7 +173,7 @@ export default function GroupsPage() {
             </div>
           </Section>
 
-          <Section index={2} title={t('fieldEnvironment')} description={t('groupsScopedHint')}>
+          <Section title={t('fieldEnvironment')} description={t('groupsScopedHint')}>
             <div className="max-w-sm">
               <Dropdown
                 value={selectedEnvKey}
@@ -207,7 +207,7 @@ export default function GroupsPage() {
           )}
 
           <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-            <Section index={3} title={t('createGroupTitle')} description={t('createGroupHint')}>
+            <Section title={t('createGroupTitle')} description={t('createGroupHint')}>
               <Card>
                 <form onSubmit={handleCreate} className="space-y-4">
                   <Field label={t('groupKey')}>
@@ -241,7 +241,7 @@ export default function GroupsPage() {
               </Card>
             </Section>
 
-            <Section index={4} title={t('existingGroups')} description={t('existingGroupsHint')}>
+            <Section title={t('existingGroups')} description={t('existingGroupsHint')}>
               {loading ? (
                 <div className="h-44 animate-pulse rounded-xl bg-hoverBg" />
               ) : groups.length === 0 ? (
@@ -334,7 +334,7 @@ function GroupCard({
       {expanded && (
         <div className="animate-fade-in border-t border-border bg-surfaceMuted p-4">
           {/* ── Members ───────────────────────────────────────────── */}
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+          <p className="mb-2 text-[11px] font-medium text-muted">
             {t('userIds')}
           </p>
           {group.user_ids.length === 0 ? (

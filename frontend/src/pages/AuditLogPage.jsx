@@ -279,7 +279,7 @@ export default function AuditLogPage() {
                     ? t('auditEntryCountFiltered', { count: entries.length })
                     : t('auditEntryCount', { count: entries.length })}
                 </p>
-                <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+                <label className="flex items-center gap-2 text-[11px] font-medium text-muted">
                   {t('rowsPerPage')}
                   <select
                     value={pageSize}

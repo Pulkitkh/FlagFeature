@@ -118,7 +118,7 @@ export default function FlagsPage() {
           <div className="mb-6 flex flex-col justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 sm:flex-row sm:items-center">
             <p className="flex items-center gap-2.5 font-mono text-[11px] text-muted">
               <span className="signal-dot signal-dot--live bg-good" />
-              <span className="font-medium uppercase tracking-[0.12em] text-ink">
+              <span className="font-medium text-ink">
                 {t('engineOnline')}
               </span>
               <span className="hidden text-borderStrong md:inline">/</span>
@@ -131,7 +131,7 @@ export default function FlagsPage() {
 
           <CleanupPanel />
 
-          <Section index={1}>
+          <Section>
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <StatCard label={t('statTotalFlags')} value={stats.total} icon={Flag} tone="accent" />
               <StatCard
@@ -155,7 +155,7 @@ export default function FlagsPage() {
             </div>
           </Section>
 
-          <Section index={2}>
+          <Section>
             <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />

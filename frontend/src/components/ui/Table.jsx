@@ -23,7 +23,7 @@ export function Table({ columns, children }) {
                   <th
                     key={label || `col-${index}`}
                     scope="col"
-                    className={`whitespace-nowrap px-5 py-2.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted ${
+                    className={`whitespace-nowrap px-5 py-2.5 text-[11px] font-medium text-muted ${
                       align === 'end' ? 'text-end' : 'text-start'
                     } ${className}`}
                   >
@@ -119,7 +119,7 @@ export function EmptyState({ icon: Icon, title, description, action }) {
         </div>
       )}
       <div className="max-w-sm">
-        <p className="font-display text-[15px] font-bold tracking-tight text-ink">{title}</p>
+        <p className="font-display text-[15px] font-semibold tracking-tight text-ink">{title}</p>
         {description && <p className="mt-1.5 text-sm leading-relaxed text-muted">{description}</p>}
       </div>
       {action}

@@ -24,7 +24,7 @@ export default function StatCard({ label, value, icon: Icon, tone = 'neutral', h
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-surface p-4 transition-colors duration-200 hover:border-borderStrong">
       <div className="flex items-start justify-between gap-2">
-        <span className="font-mono text-[10px] font-medium uppercase leading-4 tracking-[0.14em] text-muted">
+        <span className="text-[11px] font-medium text-muted">
           {label}
         </span>
         {Icon && (
@@ -33,7 +33,7 @@ export default function StatCard({ label, value, icon: Icon, tone = 'neutral', h
       </div>
 
       <p
-        className={`mt-3 font-display text-[32px] font-bold leading-none tracking-[-0.03em] tnum ${TONE_TEXT[tone]}`}
+        className={`mt-3 text-[30px] font-semibold leading-none tracking-[-0.02em] tnum ${TONE_TEXT[tone]}`}
       >
         {value}
       </p>

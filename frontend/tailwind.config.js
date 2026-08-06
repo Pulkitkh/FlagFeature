@@ -20,6 +20,7 @@ export default {
         bg: token('--bg'),
         surface: token('--surface'),
         surfaceMuted: token('--surface-muted'),
+        surfaceSunken: token('--surface-sunken'),
         border: token('--border'),
         borderStrong: token('--border-strong'),
         ink: token('--ink'),
@@ -36,13 +37,11 @@ export default {
         hoverBg: token('--hover-bg'),
       },
       fontFamily: {
-        // Cabinet Grotesk for headings, Satoshi for everything else, JetBrains
-        // Mono for anything that came out of the API. Fallbacks are real font
-        // stacks rather than a bare `sans-serif` so a blocked webfont degrades
-        // to something with similar metrics instead of Times.
-        display: ['"Cabinet Grotesk"', 'Satoshi', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        sans: ['Satoshi', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // Newsreader carries page titles only. Plex Sans is the working face;
+        // Plex Mono is its sibling and carries anything the API produced.
+        display: ['Newsreader', 'Georgia', 'Cambria', 'serif'],
+        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
         // Shadow strength is a variable too: a 6% black shadow is invisible on
@@ -59,13 +58,12 @@ export default {
         dots: 'radial-gradient(rgb(var(--dot) / var(--dot-alpha)) 1px, transparent 1px)',
       },
       backgroundSize: {
-        dots: '22px 22px',
+        dots: '24px 24px',
       },
       borderRadius: {
-        // One step tighter than Tailwind's defaults: the instrument look wants
-        // corners that read as machined rather than as soft cards.
-        xl: '0.625rem',
-        '2xl': '0.875rem',
+        // A touch softer than machined, a touch tighter than a marketing card.
+        xl: '0.75rem',
+        '2xl': '1rem',
       },
       animation: {
         'rise-in': 'rise-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',

@@ -3,101 +3,110 @@
 @tailwind utilities;
 
 /*
- * ── FlagForge, "instrument" theme ────────────────────────────────────────
+ * ── FlagForge palette ────────────────────────────────────────────────────
  *
- * The console reads as paper and ink rather than as a SaaS dashboard: warm
- * neutrals instead of blue-grey, near-black for primary actions instead of a
- * brand blue, and one accent — which is the same blue the evaluation chart
- * plots with, so the interactive colour and the data colour are the same
- * thing rather than two arbitrary choices.
+ * Graded rather than flat. Two things do the grading:
+ *
+ *  1. Every neutral is tinted toward the accent's hue, so the greys are
+ *     violet-leaning rather than dead. A pure #FFF/#000 ramp is what makes an
+ *     interface look unfinished; a consistent cast is what makes it look
+ *     considered.
+ *  2. The page sits on a soft two-stop wash instead of a flat fill, and the
+ *     sidebar is a half-step off the content area — so panels separate by tone
+ *     instead of by yet another border.
+ *
+ * The accent is slot 7 (violet) of the validated data-viz palette, which is
+ * also what the evaluation chart plots with: the interactive colour and the
+ * series colour are one decision, not two.
  *
  * Colours are "R G B" triples so Tailwind's opacity modifiers (bg-surface/60)
- * keep working. Every value swaps on `<html data-theme>`; no component knows
- * which theme is active.
+ * keep working, and every value swaps on `<html data-theme>`.
  */
 :root {
   color-scheme: light;
 
-  /* Warm neutrals. A pure-grey ramp is the giveaway of an untouched default;
-     these carry a little yellow so the surface reads as paper. */
-  --bg: 247 246 243;
+  /* Warm paper, very slightly violet — reads as stock, not as #FFFFFF. */
+  --bg: 249 248 251;
   --surface: 255 255 255;
-  --surface-muted: 243 242 238;
-  --border: 228 226 220;
-  --border-strong: 205 202 193;
-  --ink: 24 23 20;
-  --muted: 110 107 99;
+  --surface-muted: 244 243 248;
+  --surface-sunken: 243 242 248;
+  --border: 228 226 234;
+  --border-strong: 199 195 209;
+  --ink: 28 25 32;
+  --muted: 108 102 116;
 
-  /* Slot 1 of the validated data-viz palette, used for both selection and
-     series so the two never drift apart. */
-  --accent: 42 120 214;
-  --accent-dark: 28 88 165;
-  --accent-soft: 232 240 251;
+  /* Slot 7 of the validated data-viz palette. */
+  --accent: 74 58 167;
+  --accent-dark: 56 43 130;
+  --accent-soft: 238 235 250;
+  --accent-tint: 74 58 167;
 
-  --good: 21 105 68;
-  --good-soft: 226 241 233;
-  --warn: 146 87 8;
+  --good: 21 105 72;
+  --good-soft: 226 242 234;
+  --warn: 146 87 10;
   --warn-soft: 250 238 216;
   --bad: 168 42 32;
-  --bad-soft: 250 233 231;
-  --hover-bg: 238 236 231;
+  --bad-soft: 251 233 231;
+  --hover-bg: 238 236 245;
 
-  /* Shell decoration: a dot field rather than graph paper — quieter under
-     dense tables, and it doesn't fight the hairline rules. */
-  --dot: 24 23 20;
-  --dot-alpha: 0.055;
-  --wash-alpha: 0.05;
-  --scrollbar-thumb: 210 207 199;
-  --scrollbar-thumb-hover: 182 178 168;
+  /* Shell decoration. */
+  --dot: 28 25 32;
+  --dot-alpha: 0.045;
+  --wash-top: 0.11;
+  --wash-bottom: 0.05;
+  --scrollbar-thumb: 209 205 199;
+  --scrollbar-thumb-hover: 180 174 168;
 
-  --shadow-color: 24 23 20;
+  --shadow-color: 28 25 32;
   --shadow-hairline: 0.05;
   --shadow-soft-near: 0.04;
   --shadow-soft-far: 0.1;
   --shadow-card-near: 0.04;
   --shadow-card-far: 0.12;
-  --shadow-floating: 0.2;
+  --shadow-floating: 0.18;
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Warm near-black, matching the data-viz reference dark surface (#1a1a19)
-     so the chart sits on its validated background rather than near it. */
-  --bg: 17 17 16;
-  --surface: 26 26 25;
-  --surface-muted: 33 33 31;
-  --border: 51 50 46;
-  --border-strong: 74 72 66;
-  --ink: 245 244 240;
-  --muted: 163 161 153;
+  /* Warm charcoal with the same violet cast, not a neutral black. */
+  --bg: 20 19 24;
+  --surface: 27 25 32;
+  --surface-muted: 35 33 42;
+  --surface-sunken: 23 22 28;
+  --border: 51 48 60;
+  --border-strong: 74 70 87;
+  --ink: 240 238 244;
+  --muted: 160 155 173;
 
-  /* Slot 1, dark step. */
-  --accent: 57 135 229;
-  --accent-dark: 125 175 245;
-  --accent-soft: 21 38 60;
+  /* Slot 7, dark step. */
+  --accent: 144 133 233;
+  --accent-dark: 176 168 243;
+  --accent-soft: 40 35 66;
+  --accent-tint: 144 133 233;
 
   --good: 63 200 138;
-  --good-soft: 15 40 29;
+  --good-soft: 16 41 30;
   --warn: 226 163 66;
-  --warn-soft: 42 33 18;
+  --warn-soft: 44 34 19;
   --bad: 240 118 106;
-  --bad-soft: 45 22 20;
-  --hover-bg: 40 40 37;
+  --bad-soft: 47 23 22;
+  --hover-bg: 42 39 51;
 
-  --dot: 245 244 240;
-  --dot-alpha: 0.05;
-  --wash-alpha: 0.1;
-  --scrollbar-thumb: 60 59 54;
-  --scrollbar-thumb-hover: 84 82 75;
+  --dot: 240 238 244;
+  --dot-alpha: 0.045;
+  --wash-top: 0.18;
+  --wash-bottom: 0.09;
+  --scrollbar-thumb: 61 57 72;
+  --scrollbar-thumb-hover: 86 81 101;
 
   --shadow-color: 0 0 0;
-  --shadow-hairline: 0.35;
-  --shadow-soft-near: 0.3;
-  --shadow-soft-far: 0.5;
-  --shadow-card-near: 0.3;
-  --shadow-card-far: 0.55;
-  --shadow-floating: 0.65;
+  --shadow-hairline: 0.3;
+  --shadow-soft-near: 0.28;
+  --shadow-soft-far: 0.45;
+  --shadow-card-near: 0.28;
+  --shadow-card-far: 0.5;
+  --shadow-floating: 0.6;
 }
 
 html {
@@ -109,46 +118,39 @@ html {
 body {
   min-width: 320px;
   color: rgb(var(--ink));
-  font-family: Satoshi, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-feature-settings: 'ss01', 'cv01';
+  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: rgb(var(--bg));
-  background-image: radial-gradient(rgb(var(--dot) / var(--dot-alpha)) 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: -1px -1px;
 }
 
+/*
+ * The grade itself: a warm accent wash falling from the top and a cooler one
+ * rising from the bottom, with a barely-there dot field over both. Fixed, so
+ * it stays put while content scrolls past it.
+ */
 body::before {
   position: fixed;
   z-index: -1;
   inset: 0;
   content: '';
   pointer-events: none;
-  background-image: radial-gradient(
-    ellipse 70rem 34rem at 50% -10%,
-    rgb(var(--accent) / var(--wash-alpha)),
-    transparent 68%
-  );
+  background-image:
+    radial-gradient(
+      ellipse 80rem 40rem at 15% -10%,
+      rgb(var(--accent-tint) / var(--wash-top)),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60rem 30rem at 95% 110%,
+      rgb(var(--good) / var(--wash-bottom)),
+      transparent 60%
+    ),
+    radial-gradient(rgb(var(--dot) / var(--dot-alpha)) 1px, transparent 1px);
+  background-size: auto, auto, 24px 24px;
 }
 
-/*
- * Monospace figures everywhere a number can change under you — counters,
- * timestamps, percentages. Proportional digits make a live table jitter.
- */
+/* Numbers that change under you shouldn't jitter. */
 .tnum {
   font-variant-numeric: tabular-nums;
-}
-
-/*
- * The signature: a monospace index marker, `[01]`, before section titles.
- * It reads as instrument labelling rather than decoration, and it gives the
- * eye a fixed left edge to track down a long page.
- */
-.index-marker {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: rgb(var(--muted));
 }
 
 /* Enabled/disabled/live indicator, used everywhere a state is shown. */
@@ -186,7 +188,6 @@ body::before {
   to { opacity: 1; }
 }
 
-/* The decision trace draws its connector as it resolves. */
 @keyframes trace-in {
   from { opacity: 0; transform: translateX(-6px); }
   to { opacity: 1; transform: none; }
@@ -195,17 +196,17 @@ body::before {
 :focus-visible {
   outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
   background: rgb(var(--scrollbar-thumb));
-  border-radius: 9px;
-  border: 2px solid transparent;
+  border-radius: 10px;
+  border: 3px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {

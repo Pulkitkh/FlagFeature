@@ -85,17 +85,17 @@ export default function LoginPage() {
             <Flag className="h-4 w-4" strokeWidth={2.5} />
           </span>
           <span>
-            <span className="block font-display text-[15px] font-extrabold leading-none tracking-[-0.02em]">
+            <span className="block font-display text-[15px] font-semibold leading-none tracking-[-0.02em]">
               FlagForge
             </span>
-            <span className="mt-1 block font-mono text-[9px] font-medium uppercase leading-none tracking-[0.16em] opacity-60">
+            <span className="mt-1 block text-[11px] font-medium opacity-60">
               {t('tagline')}
             </span>
           </span>
         </Link>
 
         <div className="relative max-w-md">
-          <h2 className="font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em]">
+          <h2 className="font-display text-[34px] font-semibold leading-[1.05] tracking-[-0.03em]">
             {t('heroTitle')}
           </h2>
           <p className="mt-4 text-sm leading-relaxed opacity-70">{t('heroSubtitle')}</p>
@@ -143,7 +143,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <h1 className="font-display text-[26px] font-bold tracking-[-0.025em] text-ink">
+          <h1 className="font-display text-[26px] font-semibold tracking-[-0.025em] text-ink">
             {t('loginTitle')}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">{t('loginSubtitle')}</p>

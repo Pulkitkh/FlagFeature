@@ -70,14 +70,14 @@ export default function AuditDiffModal({ entry, onClose }) {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-surfaceMuted">
                 <tr>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  <th className="px-4 py-2.5 text-[11px] font-medium text-muted">
                     {t('fieldField')}
                   </th>
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  <th className="px-4 py-2.5 text-[11px] font-medium text-muted">
                     {t('fieldBefore')}
                   </th>
                   <th className="w-8" />
-                  <th className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  <th className="px-4 py-2.5 text-[11px] font-medium text-muted">
                     {t('fieldAfter')}
                   </th>
                 </tr>
@@ -112,7 +112,7 @@ export default function AuditDiffModal({ entry, onClose }) {
           </summary>
           <div className="grid gap-3 border-t border-border p-4 sm:grid-cols-2">
             <div className="min-w-0">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+              <p className="mb-1.5 text-[11px] font-medium text-muted">
                 {t('fieldBefore')}
               </p>
               <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">
@@ -120,7 +120,7 @@ export default function AuditDiffModal({ entry, onClose }) {
               </pre>
             </div>
             <div className="min-w-0">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+              <p className="mb-1.5 text-[11px] font-medium text-muted">
                 {t('fieldAfter')}
               </p>
               <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">

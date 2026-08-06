@@ -20,7 +20,7 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
               onClick={() => onChange(id)}
               className={`relative -mb-px flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-2.5 text-[13px] font-semibold tracking-tight transition-colors ${
                 isActive
-                  ? 'border-ink text-ink'
+                  ? 'border-accent text-ink'
                   : 'border-transparent text-muted hover:border-borderStrong hover:text-ink'
               }`}
             >
@@ -29,7 +29,7 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
               {count != null && (
                 <span
                   className={`rounded px-1.5 font-mono text-[10px] leading-4 tnum ${
-                    isActive ? 'bg-ink text-surface' : 'bg-surfaceMuted text-muted'
+                    isActive ? 'bg-accent text-white' : 'bg-surfaceMuted text-muted'
                   }`}
                 >
                   {count}

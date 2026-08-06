@@ -11,7 +11,7 @@ export function Field({ label, hint, error, children, action }) {
       {(label || action) && (
         <span className="mb-1.5 flex items-center justify-between gap-2">
           {label && (
-            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
+            <span className="text-[11px] font-medium text-muted">
               {label}
             </span>
           )}
@@ -57,7 +57,7 @@ export function Switch({ checked, onChange, label, hint }) {
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
-          checked ? 'bg-ink' : 'bg-borderStrong'
+          checked ? 'bg-accent' : 'bg-borderStrong'
         }`}
       >
         {/* Positioned rather than translated so RTL slides it the right way. */}

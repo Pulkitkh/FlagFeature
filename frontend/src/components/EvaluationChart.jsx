@@ -18,12 +18,14 @@ import { Badge, Button, Card } from './ui'
  * Recharts colours are props, not classes, so they can't come from the CSS
  * variables the rest of the UI uses — they have to be chosen in JS. One hue
  * per theme, because a single series needs no colour encoding: bar length
- * already carries the value. Both blues are from the validated data-viz
- * palette, the darker for light backgrounds and the lighter for dark ones.
+ * already carries the value. Both violets are slot 7 of the validated data-viz
+ * palette — the same hue the interface uses for selection, so the accent and
+ * the series are one decision. Each step passes the validator against its own
+ * surface (`validate_palette.js --mode light|dark`).
  */
 const CHART_COLORS = {
-  light: { series: '#2a78d6', grid: '#e7ebf1', axis: '#667085' },
-  dark: { series: '#3987e5', grid: '#2a3039', axis: '#98a1b0' },
+  light: { series: '#4a3aa7', grid: '#e8e5e1', axis: '#6c6674' },
+  dark: { series: '#9085e9', grid: '#33303c', axis: '#a09bad' },
 }
 
 const RANGES = [
@@ -45,7 +47,7 @@ function ChartTooltip({ active, payload, label, locale, t }) {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-lg border border-border bg-surface px-3 py-2 shadow-floating">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+      <p className="text-[11px] font-medium text-muted">
         {new Date(`${label}T00:00:00`).toLocaleDateString(locale, {
           weekday: 'long',
           month: 'short',

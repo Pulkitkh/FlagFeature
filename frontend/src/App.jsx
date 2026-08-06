@@ -22,7 +22,7 @@ import AccountsPage from './pages/AccountsPage'
 function Console() {
   return (
     <EnvironmentProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-transparent">
+      <div className="flex h-screen w-screen overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Routes>

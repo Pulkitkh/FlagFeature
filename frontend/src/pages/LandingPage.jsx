@@ -53,10 +53,10 @@ export default function LandingPage() {
               <span className="signal-dot signal-dot--live absolute -end-1 -top-1 bg-accent ring-2 ring-bg" />
             </span>
             <span>
-              <span className="block font-display text-[15px] font-extrabold leading-none tracking-[-0.02em] text-ink">
+              <span className="block font-display text-[15px] font-semibold leading-none tracking-[-0.02em] text-ink">
                 FlagForge
               </span>
-              <span className="mt-1 block font-mono text-[9px] font-medium uppercase leading-none tracking-[0.16em] text-muted">
+              <span className="mt-1 block text-[11px] font-medium text-muted">
                 {t('tagline')}
               </span>
             </span>
@@ -82,12 +82,12 @@ export default function LandingPage() {
         {/* ── Hero ─────────────────────────────────────────────────── */}
         <section className="grid items-center gap-14 py-20 lg:grid-cols-[minmax(0,1fr)_460px] lg:py-28">
           <div className="animate-rise-in">
-            <p className="flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
+            <p className="flex items-center gap-2.5 text-[11px] font-medium text-muted">
               <span className="signal-dot signal-dot--live bg-good" />
               {t('heroEyebrow')}
             </p>
 
-            <h1 className="mt-6 max-w-2xl font-display text-[clamp(2.5rem,6vw,4rem)] font-extrabold leading-[0.98] tracking-[-0.035em] text-ink">
+            <h1 className="mt-6 max-w-2xl font-display text-[clamp(2.5rem,6vw,4rem)] font-semibold leading-[0.98] tracking-[-0.035em] text-ink">
               {t('heroTitle')}
             </h1>
 
@@ -120,7 +120,7 @@ export default function LandingPage() {
               the way it happens, and the divider is the round trip. */}
           <div className="animate-rise-in overflow-hidden rounded-xl border border-border bg-surface shadow-card">
             <div className="flex items-center justify-between border-b border-border bg-surfaceMuted px-4 py-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+              <span className="text-[11px] font-medium text-muted">
                 evaluate.http
               </span>
               <span className="flex gap-1.5">
@@ -146,8 +146,7 @@ export default function LandingPage() {
         {/* ── Capabilities ─────────────────────────────────────────── */}
         <section className="border-t border-border py-20">
           <div className="flex items-center gap-4">
-            <span className="index-marker">[01]</span>
-            <h2 className="font-display text-[26px] font-bold tracking-[-0.025em] text-ink">
+            <h2 className="font-display text-[26px] font-semibold tracking-[-0.025em] text-ink">
               {t('featuresTitle')}
             </h2>
           </div>
@@ -162,9 +161,11 @@ export default function LandingPage() {
               >
                 <div className="flex items-center justify-between">
                   <Icon className="h-4.5 w-4.5 text-ink" />
-                  <span className="index-marker">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="text-[11px] font-medium text-muted tnum">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
                 </div>
-                <h3 className="mt-6 font-display text-[15px] font-bold tracking-tight text-ink">
+                <h3 className="mt-6 font-display text-[15px] font-semibold tracking-tight text-ink">
                   {t(titleKey)}
                 </h3>
                 <p className="mt-2 text-[13px] leading-relaxed text-muted">{t(copyKey)}</p>
@@ -177,7 +178,7 @@ export default function LandingPage() {
         <section className="border-t border-border py-20">
           <div className="flex flex-col items-start justify-between gap-8 rounded-xl border border-border bg-surface p-9 sm:flex-row sm:items-center">
             <div className="min-w-0">
-              <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
+              <h2 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-ink">
                 {t('loginTitle')}
               </h2>
               <p className="mt-2 text-sm text-muted">{t('loginSubtitle')}</p>

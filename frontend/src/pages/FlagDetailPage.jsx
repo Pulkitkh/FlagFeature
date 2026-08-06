@@ -294,7 +294,7 @@ export default function FlagDetailPage() {
         <div className="mx-auto max-w-content">
           <button
             onClick={() => navigate('/flags')}
-            className="mb-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted transition-colors hover:text-ink"
+            className="mb-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-ink"
           >
             <ArrowLeft className="rtl-flip h-3 w-3" />
             {t('backToFlags')}
@@ -344,7 +344,7 @@ export default function FlagDetailPage() {
           {/* ── Overview ──────────────────────────────────────────────── */}
           {tab === 'overview' && (
             <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-              <Section index={1} title={t('decisionTrace')} description={t('decisionTraceHint')}>
+              <Section title={t('decisionTrace')} description={t('decisionTraceHint')}>
                 <Card padded={false}>
                   {/* The inputs sit above the trace so changing the user
                       re-lights the ladder in place — that pairing is the whole
@@ -376,7 +376,7 @@ export default function FlagDetailPage() {
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                       {testResult ? (
                         <p className="flex items-baseline gap-2.5">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                          <span className="text-[11px] font-medium text-muted">
                             {t('traceResult')}
                           </span>
                           <span className="font-mono text-lg font-semibold text-accent">
@@ -402,7 +402,6 @@ export default function FlagDetailPage() {
 
               <div>
                 <Section
-                  index={2}
                   title={t('resolvedIn', {
                     environment: selectedEnv?.name || t('environmentFallback'),
                   })}
@@ -456,7 +455,7 @@ export default function FlagDetailPage() {
                   </Card>
                 </Section>
 
-                <Section index={3} title={t('envMatrix')} description={t('envMatrixHint')}>
+                <Section title={t('envMatrix')} description={t('envMatrixHint')}>
                   <Card padded={false}>
                     <ul className="divide-y divide-border">
                       {matrix.map(({ env, result }) => (
@@ -490,7 +489,6 @@ export default function FlagDetailPage() {
           {tab === 'targeting' && (
             <div className="mt-7">
               <Section
-                index={1}
                 title={t('targetingPanel')}
                 description={t('targetingApplyTo', {
                   environment: selectedEnv?.name || t('selectedEnvironmentFallback'),
@@ -506,7 +504,7 @@ export default function FlagDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     <Card tone="inset">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                      <p className="text-[11px] font-medium text-muted">
                         {t('prioritySummary')}
                       </p>
                       <p className="mt-1 text-[13px] leading-relaxed text-ink">
@@ -525,7 +523,6 @@ export default function FlagDetailPage() {
                         icon={Check}
                         title={t('userWhitelist')}
                         hint={t('userWhitelistHint')}
-                        step="01"
                       >
                         <Textarea
                           mono
@@ -534,7 +531,7 @@ export default function FlagDetailPage() {
                           onChange={(e) => setUserIdInput(e.target.value)}
                           placeholder="alice@example.com, bob@example.com"
                         />
-                        <p className="mb-1.5 mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+                        <p className="mb-1.5 mt-3 text-[11px] font-medium text-muted">
                           {t('appliesTo')}
                         </p>
                         {parseList(userIdInput).length === 0 ? (
@@ -564,7 +561,6 @@ export default function FlagDetailPage() {
                         icon={Users}
                         title={t('groupTargeting')}
                         hint={t('groupTargetingHint')}
-                        step="02"
                       >
                         {availableGroups.length === 0 ? (
                           <p className="text-sm text-muted">
@@ -581,7 +577,7 @@ export default function FlagDetailPage() {
                                   onClick={() => toggleGroup(group)}
                                   className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold transition-colors ${
                                     isSelected
-                                      ? 'border-ink bg-ink text-surface'
+                                      ? 'border-accentDark bg-accent text-white'
                                       : 'border-border bg-surface text-muted hover:border-borderStrong hover:text-ink'
                                   }`}
                                 >
@@ -593,7 +589,7 @@ export default function FlagDetailPage() {
                           </div>
                         )}
 
-                        <p className="mb-1.5 mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+                        <p className="mb-1.5 mt-3 text-[11px] font-medium text-muted">
                           {t('extraGroupKeys')}
                         </p>
                         <Input
@@ -629,7 +625,6 @@ export default function FlagDetailPage() {
                       icon={Percent}
                       title={t('percentageRollout')}
                       hint={t('percentageHint')}
-                      step="03"
                       action={
                         <span className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-sm font-semibold text-ink tnum">
                           {Math.round(Number(percentage) || 0)}%
@@ -642,7 +637,7 @@ export default function FlagDetailPage() {
                         max="100"
                         value={percentage}
                         onChange={(e) => setPercentage(Number(e.target.value))}
-                        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-border accent-ink"
+                        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-border accent-accent"
                       />
                       {/* Preset stops: the percentages a rollout actually steps
                           through, so the common path is one click not a drag. */}
@@ -654,7 +649,7 @@ export default function FlagDetailPage() {
                             onClick={() => setPercentage(stop)}
                             className={`rounded px-1.5 py-0.5 font-mono text-[10px] tnum transition-colors ${
                               Math.round(Number(percentage) || 0) === stop
-                                ? 'bg-ink text-surface'
+                                ? 'bg-accent text-white'
                                 : 'text-muted hover:bg-surface hover:text-ink'
                             }`}
                           >
@@ -684,7 +679,6 @@ export default function FlagDetailPage() {
           {tab === 'analytics' && (
             <div className="mt-7">
               <Section
-                index={1}
                 title={t('evaluationAnalytics')}
                 description={t('evaluationAnalyticsHint')}
               >
@@ -700,7 +694,7 @@ export default function FlagDetailPage() {
           {/* ── History ───────────────────────────────────────────────── */}
           {tab === 'history' && (
             <div className="mt-7">
-              <Section index={1} title={t('history')} description={t('historyHint')}>
+              <Section title={t('history')} description={t('historyHint')}>
                 <Card padded={false}>
                   {versions.length === 0 ? (
                     <p className="p-4 text-sm text-muted">{t('noHistoryYet')}</p>
@@ -759,13 +753,13 @@ export default function FlagDetailPage() {
 function Meta({ label, children }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <dt className="uppercase tracking-[0.12em] text-muted">{label}</dt>
+      <dt className="text-muted">{label}</dt>
       <dd className="font-medium text-ink">{children}</dd>
     </div>
   )
 }
 
-function RulePanel({ icon: Icon, title, hint, step, action, children }) {
+function RulePanel({ icon: Icon, title, hint, action, children }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -774,10 +768,7 @@ function RulePanel({ icon: Icon, title, hint, step, action, children }) {
             <Icon className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
-            <p className="flex items-baseline gap-2 text-[13px] font-semibold text-ink">
-              <span className="index-marker">[{step}]</span>
-              {title}
-            </p>
+            <p className="text-[13px] font-semibold text-ink">{title}</p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{hint}</p>
           </div>
         </div>

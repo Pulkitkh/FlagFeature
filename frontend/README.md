@@ -99,35 +99,43 @@ environment filter.
 
 ## Design system
 
-The console reads as **paper and ink** rather than as a SaaS dashboard. Three
-decisions carry that:
+Three decisions carry the look:
 
-- **Warm neutrals.** The greys carry a little yellow, so the surface reads as
-  paper. A pure blue-grey ramp is the giveaway of an untouched default.
-- **Ink is the primary action.** `Button variant="primary"` is near-black, not a
-  brand blue — a page has one committed action and it should look like it.
-- **One accent, and it is the data colour.** The blue used for selection is
-  slot 1 of the validated data-viz palette, the same value the evaluation chart
-  plots with. Interactive colour and series colour are the same thing rather
-  than two arbitrary picks.
+- **A graded palette, not a flat one.** Every neutral is tinted toward the
+  accent's hue, so the greys are violet-leaning rather than dead, and the page
+  sits on a two-stop wash instead of a flat fill. A pure `#FFF`/`#000` ramp is
+  what makes an interface look unfinished.
+- **Ink commits, accent locates.** `Button variant="primary"` is near-black —
+  a page has one committed action. Everything that answers "where am I / what's
+  selected" is the accent: the sidebar's active item, the tab underline, the
+  deciding step in the trace, the switch.
+- **One accent, and it is the data colour.** Violet is slot 7 of the validated
+  data-viz palette, and the evaluation chart plots with the same value. Both
+  steps pass `validate_palette.js` against their own surface. Interactive colour
+  and series colour are one decision.
 
-Signature elements: monospace `[01]` index markers before section titles, a
-hairline rule with an accent lead-in under each page title, a dot field instead
-of graph paper, and monospace for every value that came from the API — so data
-always looks like data.
+Panels separate by tone rather than by another border — the sidebar sits a
+half-step behind the content area.
 
 ### Typography
 
-| Role | Face | Why |
+| Role | Face | Where |
 |---|---|---|
-| Display | **Cabinet Grotesk** (Fontshare) | Tight apertures give headings edge |
-| Body | **Satoshi** (Fontshare) | Neutral enough for dense tables |
-| Mono | **JetBrains Mono** (Google) | Carries every API value |
+| Display | **Newsreader** | Page titles and the landing hero only |
+| Body | **IBM Plex Sans** | Everything else |
+| Mono | **IBM Plex Mono** | Anything that came from the API |
 
-Fontshare is the Indian Type Foundry's free library. The pairing was chosen
-over the usual Inter / Space Grotesk defaults so the console has a voice of its
-own. Fallback stacks are real font stacks, not a bare `sans-serif`, so a blocked
-webfont degrades to something with similar metrics.
+Plex Sans and Plex Mono are one superfamily drawn together, so interface text
+and API values sit on the same skeleton. Newsreader gives titles a voice without
+turning the console into a magazine. Newsreader is loaded at 400/500/600 and
+headings use `font-semibold`; asking for a weight the file doesn't have gets a
+synthesised bold, which is exactly the smeared look that reads as unchosen.
+
+**Labels are sentence case in the working face.** An earlier pass had every
+label as tiny uppercase monospace with wide letter-spacing — on a field label, a
+table header, a stat caption, a breadcrumb. One or two of those is a decision;
+thirty is a tic, and it is the single loudest tell of a generated interface.
+Monospace is now reserved for values the API produced.
 
 ## Theme
 

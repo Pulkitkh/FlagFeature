@@ -11,11 +11,11 @@ export function PageHeader({ title, description, action, breadcrumb, meta }) {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           {breadcrumb && (
-            <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted">
+            <p className="mb-2 text-[12px] font-medium text-muted">
               {breadcrumb}
             </p>
           )}
-          <h1 className="font-display text-[27px] font-bold leading-[1.1] tracking-[-0.02em] text-ink">
+          <h1 className="font-display text-[27px] font-semibold leading-[1.1] tracking-[-0.02em] text-ink">
             {title}
           </h1>
           {description && (
@@ -45,7 +45,7 @@ export function PageHeader({ title, description, action, breadcrumb, meta }) {
  * A numbered block. `index` renders as `[03]` in the margin — the numbering is
  * what makes a long page feel surveyed rather than endless.
  */
-export function Section({ title, description, action, children, index, className = '' }) {
+export function Section({ title, description, action, children, className = '' }) {
   const headingId = useId()
 
   return (
@@ -56,25 +56,13 @@ export function Section({ title, description, action, children, index, className
       {(title || action) && (
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-baseline gap-2.5">
-              {index != null && (
-                <span className="index-marker shrink-0">
-                  [{String(index).padStart(2, '0')}]
-                </span>
-              )}
-              {title && (
-                <h2
-                  id={headingId}
-                  className="font-display text-[15px] font-bold tracking-[-0.01em] text-ink"
-                >
-                  {title}
-                </h2>
-              )}
-            </div>
+            {title && (
+              <h2 id={headingId} className="text-[15px] font-semibold tracking-tight text-ink">
+                {title}
+              </h2>
+            )}
             {description && (
-              <p className={`mt-1 text-xs leading-relaxed text-muted ${index != null ? 'ps-8' : ''}`}>
-                {description}
-              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
             )}
           </div>
           {action}

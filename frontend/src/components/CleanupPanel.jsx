@@ -69,7 +69,7 @@ export default function CleanupPanel() {
             <Sparkles className="h-3.5 w-3.5" />
           </span>
           <div>
-            <h2 className="font-display text-[14px] font-bold tracking-tight text-ink">
+            <h2 className="font-display text-[14px] font-semibold tracking-tight text-ink">
               {t('cleanupTitle')}
             </h2>
             <p className="text-[11px] leading-relaxed text-muted">{t('cleanupHint')}</p>

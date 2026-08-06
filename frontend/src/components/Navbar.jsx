@@ -30,14 +30,14 @@ export default function Navbar({ title, breadcrumb }) {
       {/* The path reads as one monospace line rather than a stacked title —
           a console tells you where you are in a single glance. */}
       <p className="min-w-0 truncate font-mono text-[11px] tracking-tight text-muted">
-        {breadcrumb && <span className="uppercase tracking-[0.14em]">{breadcrumb}</span>}
+        {breadcrumb && <span>{breadcrumb}</span>}
         {breadcrumb && <span className="mx-2 text-borderStrong">/</span>}
         <span className="font-medium text-ink">{title}</span>
       </p>
 
       <div className="flex shrink-0 items-center gap-2">
         <span
-          className="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted xl:flex"
+          className="hidden items-center gap-1.5 text-[11px] font-medium text-muted xl:flex"
           title={healthLabel}
         >
           <span

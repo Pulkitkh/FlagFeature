@@ -116,7 +116,7 @@ export default function EnvironmentsPage() {
             }
           />
 
-          <Section index={1} title={t('envPreviewTitle')} description={t('envPreviewHint')}>
+          <Section title={t('envPreviewTitle')} description={t('envPreviewHint')}>
             <Card>
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
                 <Field label={t('navFlags')}>
@@ -150,7 +150,7 @@ export default function EnvironmentsPage() {
                   <div className="p-4 text-sm text-muted">{t('noPreview')}</div>
                 ) : (
                   <table className="w-full text-start text-sm">
-                    <thead className="border-b border-border bg-surfaceMuted font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
+                    <thead className="border-b border-border bg-surfaceMuted text-[11px] font-medium text-muted">
                       <tr>
                         <th className="px-4 py-3 text-start">{t('fieldEnvironment')}</th>
                         <th className="px-4 py-3 text-start">{t('colResolvedValue')}</th>
@@ -189,7 +189,7 @@ export default function EnvironmentsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {environments.map((env, index) => (
+              {environments.map((env) => (
                 <Card key={env.id} className="h-full transition-colors hover:border-borderStrong">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
@@ -197,10 +197,7 @@ export default function EnvironmentsPage() {
                         <Layers className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <p className="flex items-baseline gap-2 font-mono text-[13px] font-semibold text-ink">
-                          <span className="index-marker">[{String(index + 1).padStart(2, '0')}]</span>
-                          {env.key}
-                        </p>
+                        <p className="font-mono text-[13px] font-semibold text-ink">{env.key}</p>
                         <p className="text-xs text-muted">{env.name}</p>
                       </div>
                     </div>
