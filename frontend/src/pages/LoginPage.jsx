@@ -141,7 +141,7 @@ export default function LoginPage() {
           </Link>
 
           <div className="mb-8 lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-bg">
               <Flag className="h-5 w-5" strokeWidth={2.5} />
             </span>
           </div>

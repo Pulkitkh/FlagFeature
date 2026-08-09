@@ -52,7 +52,7 @@ export default function UserMenu() {
             open ? 'border-accent bg-accentSoft' : 'border-border bg-surface hover:bg-surfaceMuted'
           }`}
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-white">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-bg">
             {initials(user)}
           </span>
           <span className="hidden max-w-[9rem] truncate font-medium text-ink sm:block">

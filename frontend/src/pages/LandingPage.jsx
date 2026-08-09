@@ -71,7 +71,7 @@ export default function LandingPage() {
             <ThemeToggle />
             <Link
               to={enter}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-ink bg-ink px-4 text-[13px] font-semibold tracking-tight text-surface transition-colors hover:bg-ink/90"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-accentDark bg-accent px-4 text-[13px] font-semibold tracking-tight text-bg shadow-soft transition-colors hover:bg-accentDark"
             >
               <LogIn className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">
@@ -102,7 +102,7 @@ export default function LandingPage() {
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <Link
                 to={enter}
-                className="inline-flex h-11 items-center gap-2 rounded-lg border border-ink bg-ink px-6 text-sm font-semibold tracking-tight text-surface transition-all hover:bg-ink/90 active:translate-y-px"
+                className="inline-flex h-11 items-center gap-2 rounded-lg border border-accentDark bg-accent px-6 text-sm font-semibold tracking-tight text-bg shadow-soft transition-all hover:bg-accentDark active:translate-y-px"
               >
                 {isAuthenticated ? t('openConsole') : t('getStarted')}
                 <ArrowRight className="rtl-flip h-4 w-4" />
@@ -159,10 +159,13 @@ export default function LandingPage() {
             {FEATURES.map(({ icon: Icon, titleKey, copyKey }, index) => (
               <div
                 key={titleKey}
-                className="group bg-surface p-6 transition-colors hover:bg-surfaceMuted"
+                className="group relative bg-surface p-6 transition-colors hover:bg-accentSoft/50"
               >
+                {/* The rule draws in from the leading edge on hover, so the
+                    cell you're reading is marked without the grid moving. */}
+                <span className="absolute inset-x-0 top-0 h-px origin-left scale-x-0 bg-accent transition-transform duration-200 group-hover:scale-x-100" />
                 <div className="flex items-center justify-between">
-                  <Icon className="h-4.5 w-4.5 text-ink" />
+                  <Icon className="h-4.5 w-4.5 text-accent" />
                   <span className="text-[11px] font-medium text-muted tnum">
                     {String(index + 1).padStart(2, '0')}
                   </span>
@@ -187,7 +190,7 @@ export default function LandingPage() {
             </div>
             <Link
               to={enter}
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg border border-ink bg-ink px-6 text-sm font-semibold tracking-tight text-surface transition-all hover:bg-ink/90 active:translate-y-px"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg border border-accentDark bg-accent px-6 text-sm font-semibold tracking-tight text-bg shadow-soft transition-all hover:bg-accentDark active:translate-y-px"
             >
               {isAuthenticated ? t('openConsole') : t('signIn')}
               <ArrowRight className="rtl-flip h-4 w-4" />

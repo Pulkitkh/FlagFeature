@@ -129,8 +129,22 @@ html {
 body {
   min-width: 320px;
   color: rgb(var(--ink));
-  font-family: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: Archivo, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-stretch: 100%;
   background-color: rgb(var(--bg));
+}
+
+/*
+ * Titles are the same face as body text, cut wider on Archivo's width axis.
+ * A heading earns its authority from proportion here, not from a borrowed
+ * serif — which also means there is exactly one typeface to load and one set
+ * of shapes to recognise across the whole console.
+ *
+ * Only font-stretch is set: letter-spacing stays with the Tailwind `tracking-`
+ * utilities so per-heading tuning still wins.
+ */
+.font-display {
+  font-stretch: 112%;
 }
 
 /*

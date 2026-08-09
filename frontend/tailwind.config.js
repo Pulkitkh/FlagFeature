@@ -38,11 +38,13 @@ export default {
         hoverBg: token('--hover-bg'),
       },
       fontFamily: {
-        // Source Serif carries titles, Source Sans does the work, Source Code
-        // carries anything the API produced. Siblings, so they cut together.
-        display: ['"Source Serif 4"', 'Charter', 'Georgia', 'serif'],
-        sans: ['"Source Sans 3"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"Source Code Pro"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // `display` is not a second family — it is Archivo again, and the
+        // width axis does the work (see .font-display in index.css). Keeping
+        // one family across both roles is what makes the type read as a
+        // system rather than as two fonts picked off a list.
+        display: ['Archivo', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Archivo', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
         // Shadow strength is a variable too: a 6% black shadow is invisible on

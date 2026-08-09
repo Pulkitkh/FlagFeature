@@ -1,17 +1,21 @@
 import { Loader2 } from 'lucide-react'
 
 /**
- * Primary is ink, not the accent colour. A near-black button reads as the one
- * committed action on a page; reserving the blue for selection and for the
- * chart keeps "this is interactive" and "this is data" from competing.
+ * Primary is the accent, not ink. A black button is the safe choice and it is
+ * also the flattest thing on the page — putting the palette on the one
+ * committed action is what makes a screen look designed rather than defaulted.
+ *
+ * The label is `text-bg` rather than `text-white`: the accent inverts between
+ * themes (deep violet on light, pale violet on dark), and white on the pale
+ * step fails contrast.
  */
 const VARIANTS = {
   primary:
-    'border border-ink bg-ink text-surface hover:bg-ink/90 disabled:hover:bg-ink',
+    'border border-accentDark bg-accent text-bg shadow-soft hover:bg-accentDark disabled:hover:bg-accent',
   secondary:
     'border border-border bg-surface text-ink hover:border-borderStrong hover:bg-surfaceMuted',
   accent:
-    'border border-accentDark bg-accent text-white hover:bg-accentDark disabled:hover:bg-accent',
+    'border border-accentDark bg-accent text-bg hover:bg-accentDark disabled:hover:bg-accent',
   danger: 'border border-bad/30 bg-badSoft text-bad hover:bg-bad hover:text-white hover:border-bad',
   success:
     'border border-good/30 bg-goodSoft text-good hover:bg-good hover:text-white hover:border-good',

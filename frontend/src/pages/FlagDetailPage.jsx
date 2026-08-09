@@ -577,7 +577,7 @@ export default function FlagDetailPage() {
                                   onClick={() => toggleGroup(group)}
                                   className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold transition-colors ${
                                     isSelected
-                                      ? 'border-accentDark bg-accent text-white'
+                                      ? 'border-accentDark bg-accent text-bg'
                                       : 'border-border bg-surface text-muted hover:border-borderStrong hover:text-ink'
                                   }`}
                                 >
@@ -649,7 +649,7 @@ export default function FlagDetailPage() {
                             onClick={() => setPercentage(stop)}
                             className={`rounded px-1.5 py-0.5 font-mono text-[10px] tnum transition-colors ${
                               Math.round(Number(percentage) || 0) === stop
-                                ? 'bg-accent text-white'
+                                ? 'bg-accent text-bg'
                                 : 'text-muted hover:bg-surface hover:text-ink'
                             }`}
                           >

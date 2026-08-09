@@ -63,7 +63,7 @@ export default function Sidebar() {
           >
             {({ isActive }) => (
               <>
-                {/* The active marker is a solid ink bar, matching the primary
+                {/* The active marker is an accent bar, matching the primary
                     button — one "you are here" language across the console. */}
                 <span
                   className={`absolute start-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-e-full bg-accent transition-transform duration-150 ${
