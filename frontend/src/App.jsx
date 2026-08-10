@@ -11,6 +11,7 @@ import FlagsPage from './pages/FlagsPage'
 import FlagDetailPage from './pages/FlagDetailPage'
 import EnvironmentsPage from './pages/EnvironmentsPage'
 import AuditLogPage from './pages/AuditLogPage'
+import CleanupPage from './pages/CleanupPage'
 import GroupsPage from './pages/GroupsPage'
 import AccountsPage from './pages/AccountsPage'
 
@@ -31,6 +32,7 @@ function Console() {
             <Route path="/environments" element={<EnvironmentsPage />} />
             <Route path="/groups" element={<GroupsPage />} />
             <Route path="/audit-log" element={<AuditLogPage />} />
+            <Route path="/cleanup" element={<CleanupPage />} />
             <Route
               path="/accounts"
               element={

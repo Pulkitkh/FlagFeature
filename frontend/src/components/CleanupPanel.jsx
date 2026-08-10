@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, Sparkles, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../context/LanguageContext'
@@ -19,6 +19,9 @@ const STALE_OPTIONS = [
   { value: '60', labelKey: 'stale60' },
   { value: '90', labelKey: 'stale90' },
 ]
+
+// The flags page shows a taste of the backlog; the rest is one click away.
+const INLINE_LIMIT = 3
 
 const STATE_META = {
   on: { tone: 'good', labelKey: 'cleanupFullyRolledOut' },
@@ -93,6 +96,16 @@ export default function CleanupPanel() {
           <Badge tone={suggestions.length ? 'warn' : 'good'}>
             {loading ? '—' : suggestions.length}
           </Badge>
+          {/* The charts, filters and review controls live on the full page —
+              this panel is a doorway, not the whole feature. */}
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={ArrowRight}
+            onClick={() => navigate('/cleanup')}
+          >
+            {t('cleanupOpenPage')}
+          </Button>
         </div>
       </div>
 
@@ -115,7 +128,7 @@ export default function CleanupPanel() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {suggestions.map((item) => {
+            {suggestions.slice(0, INLINE_LIMIT).map((item) => {
               const meta = STATE_META[item.state]
               return (
                 <li
@@ -172,6 +185,18 @@ export default function CleanupPanel() {
                 </li>
               )
             })}
+
+            {suggestions.length > INLINE_LIMIT && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => navigate('/cleanup')}
+                  className="w-full rounded-xl border border-dashed border-border px-4 py-2.5 text-xs font-medium text-muted transition-colors hover:border-borderStrong hover:text-ink"
+                >
+                  {t('cleanupMoreCandidates', { count: suggestions.length - INLINE_LIMIT })}
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </div>

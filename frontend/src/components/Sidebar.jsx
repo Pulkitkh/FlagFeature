@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Flag, Layers, Clock, Users, UserCog } from 'lucide-react'
+import { Flag, Layers, Clock, Users, UserCog, Sparkles } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../context/LanguageContext'
 
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/environments', labelKey: 'navEnvironments', icon: Layers },
   { to: '/groups', labelKey: 'navGroups', icon: Users },
   { to: '/audit-log', labelKey: 'navAudit', icon: Clock },
+  { to: '/cleanup', labelKey: 'navCleanup', icon: Sparkles },
 ]
 
 export default function Sidebar() {
