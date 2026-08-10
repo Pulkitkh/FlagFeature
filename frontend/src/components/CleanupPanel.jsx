@@ -6,7 +6,14 @@ import { useAuth } from '../context/AuthContext'
 import { useT } from '../context/LanguageContext'
 import { Badge, Button, Card, Dropdown } from './ui'
 
+// "Any age" (0) drops the staleness clock entirely and judges a flag purely on
+// how it resolves. It is the default because the age gate hides the panel's
+// whole point on a young project: a flag disabled or rolled out to 100%
+// everywhere today is already dead code, and waiting a month to say so makes
+// the feature look broken. The older windows are still here for the real
+// question — "what has been dead long enough that nobody will miss it".
 const STALE_OPTIONS = [
+  { value: '0', labelKey: 'staleAny' },
   { value: '7', labelKey: 'stale7' },
   { value: '30', labelKey: 'stale30' },
   { value: '60', labelKey: 'stale60' },
@@ -26,7 +33,7 @@ export default function CleanupPanel() {
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
   const t = useT()
-  const [staleDays, setStaleDays] = useState('30')
+  const [staleDays, setStaleDays] = useState('0')
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -99,7 +106,12 @@ export default function CleanupPanel() {
         ) : suggestions.length === 0 ? (
           <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-border bg-surfaceMuted px-4 py-5">
             <Check className="h-4 w-4 shrink-0 text-good" />
-            <p className="text-sm text-muted">{t('cleanupEmpty')}</p>
+            {/* At "any age" there is no clock, so blaming a recent change
+                would be a lie — the only reason left is that every flag is
+                still resolving differently somewhere. */}
+            <p className="text-sm text-muted">
+              {t(staleDays === '0' ? 'cleanupEmptyAnyAge' : 'cleanupEmpty')}
+            </p>
           </div>
         ) : (
           <ul className="space-y-3">
@@ -127,10 +139,13 @@ export default function CleanupPanel() {
                     <p className="mt-1 text-xs text-muted">
                       {/* `item.reason` is an API reason code, left as-is. */}
                       {item.reason} ·{' '}
-                      {t('cleanupMeta', {
-                        days: item.stale_days,
-                        evaluations: item.evaluations,
-                      })}
+                      {/* "unchanged for 0 days" is not a sentence. */}
+                      {item.stale_days === 0
+                        ? t('cleanupMetaToday', { evaluations: item.evaluations })
+                        : t('cleanupMeta', {
+                            days: item.stale_days,
+                            evaluations: item.evaluations,
+                          })}
                     </p>
                   </div>
 

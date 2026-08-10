@@ -240,15 +240,19 @@ export default {
   cleanupTitle: 'Cleanup suggestions',
   cleanupHint:
     'Flags that behave the same for everyone in every environment — safe to delete from the code',
+  staleAny: 'Any age',
   stale7: 'Stale 7+ days',
   stale30: 'Stale 30+ days',
   stale60: 'Stale 60+ days',
   stale90: 'Stale 90+ days',
   cleanupEmpty:
     'Nothing to clean up. Every flag is either still doing real work or was changed recently.',
+  cleanupEmptyAnyAge:
+    'Nothing to clean up. Every flag is still doing real work in at least one environment.',
   cleanupFullyRolledOut: 'Fully rolled out',
   cleanupSwitchedOff: 'Switched off',
   cleanupMeta: 'unchanged for {days} days · {evaluations} evaluations recorded',
+  cleanupMetaToday: 'changed today · {evaluations} evaluations recorded',
   markReviewed: 'Mark reviewed',
   reviewedNote: 'Reviewed from the dashboard',
 
