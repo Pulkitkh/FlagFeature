@@ -28,7 +28,7 @@ export default function Tabs({ tabs, active, onChange, className = '' }) {
               {label}
               {count != null && (
                 <span
-                  className={`rounded px-1.5 font-mono text-[10px] leading-4 tnum ${
+                  className={`rounded px-1.5 identifier text-[11px] leading-4 tnum ${
                     isActive ? 'bg-accent text-bg' : 'bg-surfaceMuted text-muted'
                   }`}
                 >

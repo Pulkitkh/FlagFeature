@@ -55,7 +55,7 @@ export default function ThemeToggle({ className = '' }) {
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label={t('theme')}
-          className={`flex h-9 w-6 items-center justify-center border-s border-border text-muted transition-colors hover:bg-surfaceMuted hover:text-ink ${
+          className={`flex h-9 w-8 items-center justify-center border-s border-border fine:w-6 text-muted transition-colors hover:bg-surfaceMuted hover:text-ink ${
             open ? 'bg-surfaceMuted text-ink' : ''
           }`}
         >

@@ -47,11 +47,11 @@ export default function Dropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 text-start text-[13px] outline-none transition-colors ${
+        className={`flex h-9 w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 text-start text-[13px] transition-colors duration-base ${
           open ? 'border-accent ring-2 ring-accentSoft' : 'border-border hover:border-borderStrong'
         }`}
       >
-        <span className={`truncate ${mono ? 'font-mono' : ''} ${selected ? 'text-ink' : 'text-muted'}`}>
+        <span className={`truncate ${mono ? 'identifier' : ''} ${selected ? 'text-ink' : 'text-muted'}`}>
           {selected ? (renderValue ? renderValue(selected) : selected.label) : placeholderText}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -76,7 +76,7 @@ export default function Dropdown({
                   isSelected ? 'bg-accentSoft font-semibold text-accentDark' : 'text-ink hover:bg-surfaceMuted'
                 }`}
               >
-                <span className={`flex-1 truncate ${mono ? 'font-mono' : ''}`}>
+                <span className={`flex-1 truncate ${mono ? 'identifier' : ''}`}>
                   {renderOption ? renderOption(option) : option.label}
                 </span>
                 {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-accent" />}

@@ -140,7 +140,7 @@ export default function CleanupPanel() {
                       <button
                         type="button"
                         onClick={() => navigate(`/flags/${encodeURIComponent(item.flag_key)}`)}
-                        className="truncate font-mono text-sm font-semibold text-ink transition-colors hover:text-accent"
+                        className="tap-pad relative truncate identifier text-sm font-semibold text-ink transition-colors hover:text-accent"
                       >
                         {item.flag_key}
                       </button>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Bar,
@@ -125,7 +125,7 @@ function ChartTooltip({ active, payload, t, measure, unit }) {
   const row = payload[0].payload
   return (
     <div className="rounded-lg border border-border bg-surface px-3 py-2 shadow-floating">
-      <p className="font-mono text-[11px] text-muted">{row.key}</p>
+      <p className="identifier text-[11px] text-muted">{row.key}</p>
       <p className="mt-1 text-sm font-semibold tabular-nums text-ink">
         {measure === 'idle'
           ? unit.key === 'days'
@@ -144,14 +144,29 @@ function ChartTooltip({ active, payload, t, measure, unit }) {
  */
 function CandidateChart({ rows, measure, colors, t, colorFor, unit }) {
   const height = Math.max(140, rows.length * 34 + 24)
+  const boxRef = useRef(null)
+  const [width, setWidth] = useState(0)
+
+  // A fixed 168px category axis is a third of a phone screen. Watching the
+  // container lets the axis take a share of the width instead of a constant.
+  useEffect(() => {
+    const node = boxRef.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  const axisWidth = width && width < 420 ? Math.max(84, Math.round(width * 0.34)) : 168
+  const labelRoom = width && width < 420 ? 40 : 52
 
   return (
-    <div style={{ height }}>
+    <div ref={boxRef} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           layout="vertical"
           data={rows}
-          margin={{ top: 4, right: 52, bottom: 4, left: 0 }}
+          margin={{ top: 4, right: labelRoom, bottom: 4, left: 0 }}
           barCategoryGap={8}
         >
           {/* Vertical rules only: horizontal ones would just underline the
@@ -167,7 +182,7 @@ function CandidateChart({ rows, measure, colors, t, colorFor, unit }) {
           <YAxis
             type="category"
             dataKey="label"
-            width={168}
+            width={axisWidth}
             tick={{ fill: colors.axis, fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -429,7 +444,7 @@ export default function CleanupPage() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={t('navCleanup')} breadcrumb="FlagForge" />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
             title={t('cleanupPageTitle')}
@@ -682,7 +697,7 @@ export default function CleanupPage() {
                           onClick={() =>
                             navigate(`/flags/${encodeURIComponent(item.flag_key)}`)
                           }
-                          className="truncate font-mono text-sm font-semibold text-ink transition-colors hover:text-accent"
+                          className="tap-pad relative truncate identifier text-sm font-semibold text-ink transition-colors hover:text-accent"
                         >
                           {item.flag_key}
                         </button>

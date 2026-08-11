@@ -1,3 +1,4 @@
+import { Children, cloneElement, isValidElement } from 'react'
 import Card from './Card'
 
 /**
@@ -10,6 +11,12 @@ function columnOf(column) {
 }
 
 export function Table({ columns, children }) {
+  // Cloning to pass the row's position keeps the stagger an implementation
+  // detail of the table: callers keep writing `items.map(x => <Row/>)`.
+  const rows = Children.map(children, (child, index) =>
+    isValidElement(child) ? cloneElement(child, { rowIndex: index }) : child
+  )
+
   return (
     <Card padded={false} className="overflow-hidden">
       <div className="overflow-x-auto">
@@ -33,17 +40,20 @@ export function Table({ columns, children }) {
               })}
             </tr>
           </thead>
-          <tbody>{children}</tbody>
+          <tbody>{rows}</tbody>
         </table>
       </div>
     </Card>
   )
 }
 
-export function Row({ onClick, children }) {
+export function Row({ onClick, children, rowIndex = 0 }) {
   const interactive = Boolean(onClick)
   return (
     <tr
+      // Capped at 10 steps: past that the stagger stops reading as a list
+      // forming and starts reading as the last rows being slow.
+      style={{ animationDelay: `${Math.min(rowIndex, 10) * 26}ms` }}
       onClick={onClick}
       onKeyDown={
         interactive
@@ -59,7 +69,7 @@ export function Row({ onClick, children }) {
       role={interactive ? 'button' : undefined}
       // The hover state is a surface shift plus an accent edge on the leading
       // cell, so the row you're on is unambiguous without a heavy fill.
-      className={`group border-b border-border/70 transition-colors duration-150 last:border-b-0 ${
+      className={`group animate-row-in border-b border-border/70 transition-colors duration-base last:border-b-0 ${
         interactive
           ? 'cursor-pointer hover:bg-surfaceMuted focus-visible:bg-surfaceMuted focus-visible:outline-none'
           : ''
@@ -145,7 +155,7 @@ export function Pager({ page, pageCount, total, from, to, onPrevious, onNext, la
           type="button"
           onClick={onPrevious}
           disabled={page === 0}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-ink transition-colors hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-ink fine:h-8 transition-colors hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
         >
           {labels.previous}
         </button>
@@ -153,7 +163,7 @@ export function Pager({ page, pageCount, total, from, to, onPrevious, onNext, la
           type="button"
           onClick={onNext}
           disabled={page >= pageCount - 1}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-ink transition-colors hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-ink fine:h-8 transition-colors hover:bg-surfaceMuted disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface"
         >
           {labels.next}
         </button>

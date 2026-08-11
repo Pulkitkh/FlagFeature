@@ -11,6 +11,7 @@ import {
   Percent,
   ShieldCheck,
 } from 'lucide-react'
+import Logo, { LogoTile } from '../components/Logo'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
@@ -67,7 +68,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="min-h-screen-dvh flex w-full">
       {/* Left: the pitch. Hidden on small screens, where the form is all that matters. */}
       {/* The slab carries the same violet-to-teal grade as the console shell,
           so the first screen anyone sees is the palette rather than a black
@@ -84,9 +85,8 @@ export default function LoginPage() {
         />
 
         <Link to="/" className="relative flex w-fit items-center gap-2.5">
-          <span className="relative flex h-8 w-8 items-center justify-center rounded-md bg-surface text-ink">
-            <Flag className="h-4 w-4" strokeWidth={2.5} />
-          </span>
+          {/* On the dark slab the mark carries itself — no tile needed. */}
+          <Logo className="h-8 w-8 text-surface" />
           <span>
             <span className="block font-display text-[15px] font-semibold leading-none tracking-[-0.02em]">
               FlagForge
@@ -141,9 +141,7 @@ export default function LoginPage() {
           </Link>
 
           <div className="mb-8 lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-bg">
-              <Flag className="h-5 w-5" strokeWidth={2.5} />
-            </span>
+            <LogoTile className="h-11 w-11" />
           </div>
 
           <h1 className="font-display text-[26px] font-semibold tracking-[-0.025em] text-ink">

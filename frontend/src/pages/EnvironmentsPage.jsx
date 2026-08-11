@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Layers, Flag, Activity, Plus, Pencil } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Activity, Check, Clock, Flag, Layers, Pencil, Percent, Plus } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import EnvironmentInsights from '../components/EnvironmentInsights'
 import { useEnvironment } from '../context/EnvironmentContext'
 import { useT } from '../context/LanguageContext'
 import { api } from '../api/client'
@@ -13,7 +15,8 @@ const ENV_ICON_TONE = {
 }
 
 export default function EnvironmentsPage() {
-  const { environments, refresh, loading } = useEnvironment()
+  const { environments, refresh, loading, selected, setSelectedKey } = useEnvironment()
+  const navigate = useNavigate()
   const t = useT()
   const [flagCount, setFlagCount] = useState(null)
   const [apiHealthy, setApiHealthy] = useState(null)
@@ -21,6 +24,12 @@ export default function EnvironmentsPage() {
   const [selectedFlagKey, setSelectedFlagKey] = useState('')
   const [flagPreview, setFlagPreview] = useState([])
   const [previewLoading, setPreviewLoading] = useState(false)
+
+  // Per-environment resolve counts, for the rollout bar on each card. The
+  // insights panel computes the same thing for its chart; this is the cheap
+  // summary the cards need and is kept here so a card renders without waiting
+  // on the charts below it.
+  const [envStats, setEnvStats] = useState({})
 
   const [showForm, setShowForm] = useState(false)
   const [key, setKey] = useState('')
@@ -43,6 +52,29 @@ export default function EnvironmentsPage() {
       .catch(() => setFlagCount(null))
     api.health().then((h) => setApiHealthy(h.status === 'ok')).catch(() => setApiHealthy(false))
   }, [])
+
+  useEffect(() => {
+    if (!environments.length || !flags.length) return
+    let cancelled = false
+    Promise.all(
+      environments.map((env) =>
+        Promise.all(
+          flags.map((flag) =>
+            api
+              .evaluateFlag({ flag_key: flag.key, environment_key: env.key })
+              .then((r) => r.value === true || r.value === 'true')
+              .catch(() => null)
+          )
+        ).then((results) => {
+          const live = results.filter((r) => r !== null)
+          return [env.key, { on: live.filter(Boolean).length, total: live.length }]
+        })
+      )
+    ).then((entries) => !cancelled && setEnvStats(Object.fromEntries(entries)))
+    return () => {
+      cancelled = true
+    }
+  }, [environments, flags])
 
   useEffect(() => {
     if (!selectedFlagKey || environments.length === 0) {
@@ -104,7 +136,7 @@ export default function EnvironmentsPage() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={t('environmentsTitle')} breadcrumb="FlagForge" />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
             title={t('environmentsTitle')}
@@ -129,13 +161,13 @@ export default function EnvironmentsPage() {
                     renderOption={(option) => (
                       <span className="flex items-center gap-2">
                         <span className={`signal-dot ${option.meta.enabled ? 'signal-dot--live bg-good' : 'bg-muted'}`} />
-                        <span className="font-mono">{option.label}</span>
+                        <span className="identifier">{option.label}</span>
                       </span>
                     )}
                     renderValue={(option) => (
                       <span className="flex items-center gap-2">
                         <span className={`signal-dot ${option.meta.enabled ? 'signal-dot--live bg-good' : 'bg-muted'}`} />
-                        <span className="font-mono">{option.label}</span>
+                        <span className="identifier">{option.label}</span>
                       </span>
                     )}
                   />
@@ -165,8 +197,8 @@ export default function EnvironmentsPage() {
                           className="border-b border-border last:border-0"
                         >
                           <td className="px-4 py-3 font-medium text-ink">{environments[index]?.name}</td>
-                          <td className="px-4 py-3 font-mono text-accentDark">{JSON.stringify(result.value)}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-muted">{result.reason}</td>
+                          <td className="px-4 py-3 identifier text-accentDark">{JSON.stringify(result.value)}</td>
+                          <td className="px-4 py-3 identifier text-xs text-muted">{result.reason}</td>
                           <td className="px-4 py-3">
                             <Badge tone={result.cached ? 'warn' : 'good'} dot live={!result.cached}>
                               {result.cached ? t('cachedState') : t('liveState')}
@@ -197,7 +229,7 @@ export default function EnvironmentsPage() {
                         <Layers className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <p className="font-mono text-[13px] font-semibold text-ink">{env.key}</p>
+                        <p className="identifier text-[13px] font-semibold text-ink">{env.key}</p>
                         <p className="text-xs text-muted">{env.name}</p>
                       </div>
                     </div>
@@ -205,7 +237,34 @@ export default function EnvironmentsPage() {
                       {env.key === 'production' ? t('liveState') : t('activeState')}
                     </Badge>
                   </div>
-                  <div className="mt-3 flex justify-end">
+                  {/* Four things you can actually do from a card, instead of
+                      one Edit button and three read-only rows. */}
+                  <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-3">
+                    <Button
+                      size="sm"
+                      variant={selected?.key === env.key ? 'secondary' : 'ghost'}
+                      icon={Check}
+                      disabled={selected?.key === env.key}
+                      onClick={() => setSelectedKey(env.key)}
+                    >
+                      {selected?.key === env.key ? t('envActive') : t('envSetActive')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={Flag}
+                      onClick={() => navigate('/flags')}
+                    >
+                      {t('envViewFlags')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={Clock}
+                      onClick={() => navigate('/audit-log')}
+                    >
+                      {t('envViewAudit')}
+                    </Button>
                     <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openEdit(env)}>
                       {t('edit')}
                     </Button>
@@ -236,15 +295,42 @@ export default function EnvironmentsPage() {
                             : t('apiDegraded')}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-muted">
-                      <span>{t('lastDeployment')}</span>
-                      <span className="text-xs">{t('notTrackedYet')}</span>
+                    {/* The share of this environment's flags currently
+                        resolving on — a one-line rollout picture per card. */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-muted">
+                          <Percent className="h-3.5 w-3.5" /> {t('envResolvingOn')}
+                        </span>
+                        <span className="tnum font-medium text-ink">
+                          {envStats[env.key]
+                            ? `${envStats[env.key].on} / ${envStats[env.key].total}`
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surfaceSunken">
+                        <div
+                          className="h-full rounded-full bg-accent transition-[width] duration-slow ease-out-expo"
+                          style={{
+                            width: envStats[env.key]?.total
+                              ? `${(envStats[env.key].on / envStats[env.key].total) * 100}%`
+                              : '0%',
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
           )}
+
+          {/* Charts go below the cards: the cards answer "what exists", the
+              charts answer "what is happening", and that is the order you ask
+              those questions in. */}
+          <div className="mt-9">
+            <EnvironmentInsights environments={environments} flags={flags} />
+          </div>
         </div>
       </div>
 

@@ -27,14 +27,14 @@ export function Field({ label, hint, error, children, action }) {
 
 export function Input({ className = '', mono = false, ...props }) {
   return (
-    <input className={`${baseInputClasses} ${mono ? 'font-mono' : ''} ${className}`} {...props} />
+    <input className={`${baseInputClasses} ${mono ? 'identifier' : ''} ${className}`} {...props} />
   )
 }
 
 export function Textarea({ className = '', mono = false, ...props }) {
   return (
     <textarea
-      className={`${baseInputClasses} resize-none leading-relaxed ${mono ? 'font-mono' : ''} ${className}`}
+      className={`${baseInputClasses} resize-none leading-relaxed ${mono ? 'identifier' : ''} ${className}`}
       {...props}
     />
   )
@@ -56,7 +56,7 @@ export function Switch({ checked, onChange, label, hint }) {
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+        className={`tap-pad relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
           checked ? 'bg-accent' : 'bg-borderStrong'
         }`}
       >

@@ -2,7 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the page reach under a notch; the safe-area
+         insets in index.css then keep content out from under it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Colours the browser chrome on Android and iOS PWAs to match the theme. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f5fb" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#131119" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>FlagForge</title>
     <!--
       Archivo does all the typesetting. It is a variable font with a width
@@ -11,13 +17,17 @@
       with a sans is the tell of a template, and one family working across
       two optical widths is a type system.
 
-      JetBrains Mono carries flag keys, values and payloads. It is drawn for
-      code, which is exactly what those strings are.
+      There is no second family. Flag keys and environment names are
+      identifiers, not code samples, so they are set in Archivo like everything
+      else and marked as identifiers by weight, tracking and a tinted chip
+      instead of by a monospace face. Raw payloads — the API sample on the
+      landing page, JSON in an audit diff — use the operating system's own
+      mono, which is already installed and needs no download.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&display=swap"
       rel="stylesheet"
     />
     <script>

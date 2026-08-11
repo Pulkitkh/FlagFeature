@@ -142,7 +142,7 @@ export default function GroupsPage() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={t('groupsTitle')} breadcrumb="FlagForge" />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
             title={t('groupsTitle')}
@@ -320,7 +320,7 @@ function GroupCard({
         className="flex w-full items-center gap-3 px-4 py-3 text-start transition-colors hover:bg-surfaceMuted"
       >
         <span className="signal-dot signal-dot--live shrink-0 bg-good" />
-        <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-semibold text-ink">
+        <span className="min-w-0 flex-1 truncate identifier text-[13px] font-semibold text-ink">
           {group.group_key}
         </span>
         <Badge tone="neutral" mono>
@@ -344,7 +344,7 @@ function GroupCard({
               {group.user_ids.map((userId) => (
                 <span
                   key={userId}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2 py-1 identifier text-[11px] text-ink"
                 >
                   {userId}
                   {isAdmin && (

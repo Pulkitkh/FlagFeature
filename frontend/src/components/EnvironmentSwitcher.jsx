@@ -39,7 +39,7 @@ export default function EnvironmentSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t('fieldEnvironment')}
-        className={`flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors ${
+        className={`flex h-9 items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold transition-colors sm:px-3 ${
           open
             ? 'border-accent bg-accentSoft text-accentDark'
             : 'border-border bg-surface text-ink shadow-hairline hover:bg-surfaceMuted'
@@ -48,7 +48,9 @@ export default function EnvironmentSwitcher() {
         <span
           className={`signal-dot signal-dot--live ${ENV_DOT_COLOR[selected?.key] || 'bg-muted'}`}
         />
-        <span className="max-w-[10rem] truncate">{selected?.name || t('noEnvironment')}</span>
+        <span className="max-w-[5.5rem] truncate sm:max-w-[10rem]">
+          {selected?.name || t('noEnvironment')}
+        </span>
         <ChevronDown
           className={`h-3.5 w-3.5 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         />

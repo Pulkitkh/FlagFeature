@@ -28,41 +28,58 @@
 :root {
   color-scheme: light;
 
-  /* Warm paper, visibly violet-cast — reads as stock, not as #FFFFFF. */
-  --bg: 247 245 251;
-  --surface: 255 254 255;
-  --surface-muted: 242 240 249;
-  --surface-sunken: 238 236 247;
-  --border: 226 221 238;
-  --border-strong: 194 187 213;
-  --ink: 26 22 34;
-  --muted: 103 96 118;
+  /*
+   * Surfaces. Five steps rather than four, and the gaps between them widened —
+   * the old ramp put only four RGB units between "muted" and "sunken", which is
+   * below what the eye resolves on a screen, so panels that were meant to sit
+   * at different depths read as one flat sheet.
+   */
+  --bg: 246 244 251;
+  --surface: 255 255 255;
+  --surface-muted: 243 241 250;
+  --surface-sunken: 235 232 246;
+  --border: 224 219 238;
+  --border-strong: 188 180 211;
+  --ink: 24 20 33;
+  --muted: 99 92 116;
 
-  /* Slot 7 of the validated data-viz palette. */
-  --accent: 74 58 167;
-  --accent-dark: 56 43 130;
-  --accent-soft: 237 233 251;
-  --accent-tint: 74 58 167;
+  /*
+   * The accent now has five steps instead of three. `hover` and `muted` exist
+   * because a two-step accent forces every hover to reuse either the base or
+   * the pressed colour, which is what makes interactive states feel arbitrary.
+   * Slot 7 of the validated data-viz palette, with a little more chroma.
+   */
+  --accent: 79 61 176;
+  --accent-hover: 92 74 194;
+  --accent-dark: 58 44 136;
+  --accent-muted: 213 205 246;
+  --accent-soft: 236 232 252;
+  --accent-tint: 79 61 176;
 
   /* Slot 3, the secondary hue: washes and rules only, never interaction. */
-  --accent-alt: 14 116 128;
+  --accent-alt: 13 118 132;
 
-  --good: 21 105 72;
-  --good-soft: 224 242 233;
-  --warn: 146 87 10;
-  --warn-soft: 250 238 216;
-  --bad: 168 42 32;
-  --bad-soft: 251 232 230;
-  --hover-bg: 236 232 247;
+  /* Status. Each now carries a border step so a chip's edge is a decision
+     rather than an opacity guess at the call site. */
+  --good: 20 104 71;
+  --good-soft: 222 242 232;
+  --good-border: 152 209 182;
+  --warn: 148 88 9;
+  --warn-soft: 251 238 214;
+  --warn-border: 226 187 122;
+  --bad: 170 41 31;
+  --bad-soft: 252 231 229;
+  --bad-border: 233 163 156;
+  --hover-bg: 235 231 247;
 
   /* Shell decoration. */
-  --dot: 74 58 167;
+  --dot: 79 61 176;
   --dot-alpha: 0.06;
-  --wash-top: 0.22;
-  --wash-mid: 0.1;
-  --wash-bottom: 0.13;
-  --scrollbar-thumb: 205 199 218;
-  --scrollbar-thumb-hover: 176 168 194;
+  --wash-top: 0.24;
+  --wash-mid: 0.11;
+  --wash-bottom: 0.14;
+  --scrollbar-thumb: 203 197 217;
+  --scrollbar-thumb-hover: 173 165 192;
 
   --shadow-color: 28 25 32;
   --shadow-hairline: 0.05;
@@ -76,40 +93,51 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Warm charcoal with the same violet cast, not a neutral black. */
-  --bg: 19 17 25;
-  --surface: 27 24 35;
-  --surface-muted: 35 32 45;
-  --surface-sunken: 23 21 30;
-  --border: 52 48 65;
-  --border-strong: 76 71 94;
-  --ink: 240 237 246;
-  --muted: 162 156 178;
+  /*
+   * Dark surfaces get lighter as they come forward, which is how depth reads
+   * without shadows on a dark ground. The page is now deeper and the card
+   * lighter than before, so the same card no longer disappears into the page.
+   */
+  --bg: 17 15 23;
+  --surface: 30 27 39;
+  --surface-muted: 39 35 50;
+  --surface-sunken: 22 20 29;
+  --border: 55 50 69;
+  --border-strong: 83 77 102;
+  --ink: 242 239 248;
+  --muted: 167 161 183;
 
-  /* Slot 7, dark step. */
-  --accent: 144 133 233;
-  --accent-dark: 176 168 243;
-  --accent-soft: 41 35 68;
-  --accent-tint: 144 133 233;
+  /* Slot 7, dark steps. On a dark ground the ramp runs the other way: the
+     "dark" step is the brightest, because pressing something should bring it
+     toward the light rather than sink it into the page. */
+  --accent: 150 139 238;
+  --accent-hover: 166 156 243;
+  --accent-dark: 183 175 248;
+  --accent-muted: 63 54 104;
+  --accent-soft: 44 37 74;
+  --accent-tint: 150 139 238;
 
   /* Slot 3, dark step. */
-  --accent-alt: 90 197 199;
+  --accent-alt: 94 202 204;
 
-  --good: 63 200 138;
-  --good-soft: 16 41 30;
-  --warn: 226 163 66;
-  --warn-soft: 44 34 19;
-  --bad: 240 118 106;
-  --bad-soft: 47 23 22;
-  --hover-bg: 44 40 57;
+  --good: 66 205 142;
+  --good-soft: 15 43 31;
+  --good-border: 38 96 71;
+  --warn: 230 168 70;
+  --warn-soft: 46 35 19;
+  --bad: 243 122 110;
+  --bad-soft: 49 24 23;
+  --warn-border: 111 82 35;
+  --bad-border: 116 55 50;
+  --hover-bg: 47 42 60;
 
-  --dot: 176 168 243;
+  --dot: 183 175 248;
   --dot-alpha: 0.055;
-  --wash-top: 0.24;
-  --wash-mid: 0.1;
-  --wash-bottom: 0.12;
-  --scrollbar-thumb: 62 57 76;
-  --scrollbar-thumb-hover: 88 82 107;
+  --wash-top: 0.26;
+  --wash-mid: 0.11;
+  --wash-bottom: 0.13;
+  --scrollbar-thumb: 65 59 80;
+  --scrollbar-thumb-hover: 92 85 112;
 
   --shadow-color: 0 0 0;
   --shadow-hairline: 0.3;
@@ -124,6 +152,50 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: rgb(var(--bg));
+  /* Rotating an iPhone into landscape otherwise inflates every font size. */
+  -webkit-text-size-adjust: 100%;
+}
+
+/*
+ * Touch platforms.
+ *
+ * `touch-action: manipulation` drops the 300ms wait Safari keeps in case a tap
+ * turns into a double-tap-to-zoom, which is the single biggest reason a web
+ * console feels slower than a native app. The tap highlight is removed because
+ * every interactive surface here already has its own :active and hover state.
+ */
+button,
+a,
+[role='button'],
+[role='switch'],
+label,
+select,
+summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * iOS Safari zooms the whole viewport when a focused form control has a font
+ * smaller than 16px, and never zooms back out. Below `sm` every control is
+ * bumped to 16px; above it the designed sizes stand, because a mouse is
+ * pointing and no zoom happens.
+ */
+/* `pointer: coarse` rather than a width query: a phone held sideways is 852px
+   wide and still zooms, and a tablet is 768px and still has no mouse. Width
+   would miss both. */
+@media (max-width: 639px), (pointer: coarse) {
+  /* The `[class]` attribute is here to out-specify Tailwind's `text-sm` and
+     friends (0,1,1 beats 0,1,0) without reaching for !important. A bare
+     element selector loses to every utility class and silently does nothing. */
+  input[class],
+  select[class],
+  textarea[class],
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 body {
@@ -179,6 +251,91 @@ body::before {
   background-size: auto, auto, auto, 24px 24px;
 }
 
+/*
+ * iOS Safari measures 100vh against the viewport with the browser chrome
+ * collapsed, so a 100vh shell is taller than what you can actually see and its
+ * last row sits behind the toolbar. `dvh` tracks the chrome as it hides and
+ * shows. The vh line stays first as the fallback for browsers without dvh.
+ */
+.h-screen-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-screen-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/*
+ * Grows a small control's hit area by 8px above and below without moving
+ * anything. An invisible overlay rather than padding: with `box-sizing:
+ * border-box` padding is absorbed by any element with a fixed height, so a
+ * `h-5` switch would keep its 20px target and the padding would do nothing at
+ * all. The overlay is outside the box model, so it works either way.
+ */
+.tap-pad {
+  position: relative;
+}
+
+.tap-pad::after {
+  content: '';
+  position: absolute;
+  inset-block: -0.5rem;
+  inset-inline: 0;
+}
+
+/*
+ * Skip link. A console with a nav rail costs a keyboard user a dozen tabs
+ * before they reach the page itself; this is the standard escape hatch. It is
+ * positioned rather than `display: none` so it stays focusable.
+ */
+.skip-link {
+  position: absolute;
+  z-index: 100;
+  inset-inline-start: 0.75rem;
+  top: -4rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  background: rgb(var(--accent));
+  color: rgb(var(--bg));
+  font-size: 13px;
+  font-weight: 600;
+  transition: top 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+}
+
+/*
+ * Identifiers — flag keys, environment keys, group keys. These are strings you
+ * copy verbatim into a codebase, so they have to be unmistakable and
+ * character-exact. A monospace face does that job but drags a whole developer-
+ * tool aesthetic in with it, so the work is done by weight and tracking
+ * instead: slightly heavier than body text, opened up a little so adjacent
+ * characters stay distinct, and tabular figures so digits keep their width.
+ */
+.identifier {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'ss01';
+}
+
+/*
+ * The chip form, for an identifier sitting inside prose or a table cell where
+ * it needs an edge to be read as a literal value rather than as a label.
+ */
+.identifier-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.3125rem;
+  background: rgb(var(--accent-tint) / 0.07);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-tint) / 0.12);
+}
+
 /* Numbers that change under you shouldn't jitter. */
 .tnum {
   font-variant-numeric: tabular-nums;
@@ -217,6 +374,42 @@ body::before {
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+
+[dir='rtl'] .motion-safe\:animate-drawer-in,
+[dir='rtl'] .animate-drawer-in {
+  animation-name: drawer-in-rtl;
+}
+
+@keyframes drawer-in-rtl {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/*
+ * Rows arrive in sequence rather than all at once, which lets the eye follow
+ * the list forming instead of having a block of data appear. The delay is
+ * capped: past ~10 rows the stagger stops adding meaning and starts adding a
+ * wait, so everything after that lands together.
+ */
+.stagger-rows > * {
+  animation: row-in 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
+  animation-delay: calc(var(--row-index, 0) * 28ms);
 }
 
 @keyframes trace-in {
@@ -262,5 +455,9 @@ body::before {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* Without this a staggered list keeps its delays and rows appear one by
+       one in silence — the motion is gone but the waiting is not. */
+    animation-delay: 0ms !important;
+    scroll-behavior: auto !important;
   }
 }

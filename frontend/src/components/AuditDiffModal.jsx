@@ -85,9 +85,9 @@ export default function AuditDiffModal({ entry, onClose }) {
               <tbody>
                 {fields.map((field) => (
                   <tr key={field} className="border-b border-border/70 align-top last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-ink">{field}</td>
+                    <td className="px-4 py-3 font-code text-xs font-semibold text-ink">{field}</td>
                     <td className="px-4 py-3">
-                      <pre className="whitespace-pre-wrap break-words font-mono text-xs text-bad">
+                      <pre className="whitespace-pre-wrap break-words font-code text-xs text-bad">
                         {formatValue(diff[field].before, t('empty'))}
                       </pre>
                     </td>
@@ -95,7 +95,7 @@ export default function AuditDiffModal({ entry, onClose }) {
                       <ArrowRight className="mx-auto h-3.5 w-3.5 text-muted" aria-hidden="true" />
                     </td>
                     <td className="px-4 py-3">
-                      <pre className="whitespace-pre-wrap break-words font-mono text-xs text-good">
+                      <pre className="whitespace-pre-wrap break-words font-code text-xs text-good">
                         {formatValue(diff[field].after, t('empty'))}
                       </pre>
                     </td>
@@ -115,7 +115,7 @@ export default function AuditDiffModal({ entry, onClose }) {
               <p className="mb-1.5 text-[11px] font-medium text-muted">
                 {t('fieldBefore')}
               </p>
-              <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">
+              <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-code text-[11px] leading-relaxed text-ink">
                 {JSON.stringify(entry.before_state ?? null, null, 2)}
               </pre>
             </div>
@@ -123,7 +123,7 @@ export default function AuditDiffModal({ entry, onClose }) {
               <p className="mb-1.5 text-[11px] font-medium text-muted">
                 {t('fieldAfter')}
               </p>
-              <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">
+              <pre className="max-h-56 overflow-auto rounded-md border border-border bg-surface p-3 font-code text-[11px] leading-relaxed text-ink">
                 {JSON.stringify(entry.after_state ?? null, null, 2)}
               </pre>
             </div>

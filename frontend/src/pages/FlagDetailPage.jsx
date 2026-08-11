@@ -290,11 +290,11 @@ export default function FlagDetailPage() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={flag.key} breadcrumb={t('navFlags')} />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <button
             onClick={() => navigate('/flags')}
-            className="mb-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-ink"
+            className="tap-pad relative mb-5 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-ink"
           >
             <ArrowLeft className="rtl-flip h-3 w-3" />
             {t('backToFlags')}
@@ -305,7 +305,7 @@ export default function FlagDetailPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="truncate font-mono text-[22px] font-semibold tracking-tight text-ink">
+                  <h1 className="truncate identifier text-[22px] font-semibold tracking-tight text-ink">
                     {flag.key}
                   </h1>
                   <Badge tone={flag.enabled ? 'good' : 'neutral'} dot live={flag.enabled}>
@@ -379,7 +379,7 @@ export default function FlagDetailPage() {
                           <span className="text-[11px] font-medium text-muted">
                             {t('traceResult')}
                           </span>
-                          <span className="font-mono text-lg font-semibold text-accent">
+                          <span className="identifier text-lg font-semibold text-accent">
                             {JSON.stringify(testResult.value)}
                           </span>
                         </p>
@@ -412,7 +412,7 @@ export default function FlagDetailPage() {
                     ) : evalResult ? (
                       <>
                         <div className="flex items-center justify-between gap-3">
-                          <p className="font-mono text-2xl font-semibold text-accent">
+                          <p className="identifier text-2xl font-semibold text-accent">
                             {JSON.stringify(evalResult.value)}
                           </p>
                           <Badge
@@ -423,7 +423,7 @@ export default function FlagDetailPage() {
                             {evalResult.cached ? t('cachedState') : t('liveState')}
                           </Badge>
                         </div>
-                        <p className="mt-1 font-mono text-[11px] text-muted">
+                        <p className="mt-1 identifier text-[11px] text-muted">
                           {t('reasonPrefix', { reason: evalResult.reason })}
                         </p>
                       </>
@@ -473,7 +473,7 @@ export default function FlagDetailPage() {
                               {env.name}
                             </span>
                           </span>
-                          <span className="shrink-0 font-mono text-[11px] font-semibold text-accent">
+                          <span className="shrink-0 identifier text-[11px] font-semibold text-accent">
                             {result ? JSON.stringify(result.value) : '—'}
                           </span>
                         </li>
@@ -575,7 +575,7 @@ export default function FlagDetailPage() {
                                   key={group}
                                   type="button"
                                   onClick={() => toggleGroup(group)}
-                                  className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold transition-colors ${
+                                  className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 identifier text-[11px] font-semibold transition-colors ${
                                     isSelected
                                       ? 'border-accentDark bg-accent text-bg'
                                       : 'border-border bg-surface text-muted hover:border-borderStrong hover:text-ink'
@@ -626,7 +626,7 @@ export default function FlagDetailPage() {
                       title={t('percentageRollout')}
                       hint={t('percentageHint')}
                       action={
-                        <span className="rounded-md border border-border bg-surface px-2 py-0.5 font-mono text-sm font-semibold text-ink tnum">
+                        <span className="rounded-md border border-border bg-surface px-2 py-0.5 identifier text-sm font-semibold text-ink tnum">
                           {Math.round(Number(percentage) || 0)}%
                         </span>
                       }
@@ -647,7 +647,7 @@ export default function FlagDetailPage() {
                             key={stop}
                             type="button"
                             onClick={() => setPercentage(stop)}
-                            className={`rounded px-1.5 py-0.5 font-mono text-[10px] tnum transition-colors ${
+                            className={`rounded px-1.5 py-0.5 identifier text-[11px] tnum transition-colors ${
                               Math.round(Number(percentage) || 0) === stop
                                 ? 'bg-accent text-bg'
                                 : 'text-muted hover:bg-surface hover:text-ink'
@@ -705,7 +705,7 @@ export default function FlagDetailPage() {
                           {/* A spine down the left, so the list reads as a
                               sequence of releases rather than as rows. */}
                           <span className="relative flex flex-col items-center">
-                            <span className="z-[1] flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-surface font-mono text-[9px] font-semibold text-muted tnum">
+                            <span className="z-[1] flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-surface identifier text-[11px] font-semibold text-muted tnum">
                               {v.version_number}
                             </span>
                             {index < versions.length - 1 && (
@@ -716,7 +716,7 @@ export default function FlagDetailPage() {
                             <p className="text-[13px] text-ink">
                               {v.change_note || t('versionUpdated')}
                             </p>
-                            <p className="mt-0.5 font-mono text-[11px] text-muted">
+                            <p className="mt-0.5 identifier text-[11px] text-muted">
                               {t('versionBy', {
                                 date: new Date(v.created_at).toLocaleString(),
                                 actor: v.created_by,
@@ -754,7 +754,7 @@ function Meta({ label, children }) {
   return (
     <div className="flex items-baseline gap-1.5">
       <dt className="text-muted">{label}</dt>
-      <dd className="font-mono font-medium text-ink">{children}</dd>
+      <dd className="identifier font-medium text-ink">{children}</dd>
     </div>
   )
 }
@@ -789,7 +789,7 @@ function Chip({ children, onRemove, tone = 'accent', title }) {
       type="button"
       onClick={onRemove}
       title={title}
-      className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[11px] font-semibold transition-colors hover:border-bad/40 hover:bg-badSoft hover:text-bad ${tones[tone]}`}
+      className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 identifier text-[11px] font-semibold transition-colors hover:border-bad/40 hover:bg-badSoft hover:text-bad ${tones[tone]}`}
     >
       {children}
       <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />

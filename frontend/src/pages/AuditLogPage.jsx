@@ -158,7 +158,7 @@ export default function AuditLogPage() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={t('auditTitle')} breadcrumb="FlagForge" />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
             title={t('auditTitle')}
@@ -231,7 +231,7 @@ export default function AuditLogPage() {
                     type="checkbox"
                     checked={scopeToEnvironment}
                     onChange={(e) => setScopeToEnvironment(e.target.checked)}
-                    className="h-4 w-4 rounded border-border accent-accent"
+                    className="h-5 w-5 rounded border-border accent-accent fine:h-4 fine:w-4"
                   />
                   <span>
                     {t('onlyEnvironment', {
@@ -284,7 +284,7 @@ export default function AuditLogPage() {
                   <select
                     value={pageSize}
                     onChange={(event) => setPageSize(Number(event.target.value))}
-                    className="rounded-md border border-border bg-surface px-2 py-1 text-[12px] tnum text-ink outline-none focus:border-accent"
+                    className="h-9 rounded-md border border-border bg-surface px-2 text-[12px] tnum text-ink outline-none focus:border-accent fine:h-7"
                   >
                     {PAGE_SIZE_OPTIONS.map((size) => (
                       <option key={size} value={size}>
@@ -298,12 +298,12 @@ export default function AuditLogPage() {
               <Table columns={columns}>
                 {visible.map((entry) => (
                   <Row key={entry.id}>
-                    <LeadCell className="whitespace-nowrap font-mono text-[11px] text-muted tnum">
+                    <LeadCell className="whitespace-nowrap identifier text-[11px] text-muted tnum">
                       {new Date(entry.timestamp).toLocaleString()}
                     </LeadCell>
                     <Cell className="text-sm text-ink">{entry.actor}</Cell>
                     <Cell>
-                      <span className="block truncate font-mono text-sm text-ink">
+                      <span className="block truncate identifier text-sm text-ink">
                         {entry.entity_key || `${entry.entity_type}#${entry.entity_id}`}
                       </span>
                       <span className="text-xs text-muted">
@@ -321,7 +321,7 @@ export default function AuditLogPage() {
                     {/* Capped so the diff button stays on screen at 1440px —
                         the full summary is in the title and the diff modal. */}
                     <Cell className="max-w-[250px]">
-                      <span className="block truncate font-mono text-xs text-muted" title={entry.summary}>
+                      <span className="block truncate identifier text-xs text-muted" title={entry.summary}>
                         {entry.summary || '—'}
                       </span>
                     </Cell>

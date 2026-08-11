@@ -83,7 +83,7 @@ export default function AccountsPage() {
     <div className="flex flex-1 flex-col overflow-hidden">
       <Navbar title={t('accountsTitle')} breadcrumb="FlagForge" />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="mx-auto max-w-content">
           <PageHeader
             title={t('accountsTitle')}
@@ -139,7 +139,7 @@ export default function AccountsPage() {
                         {account.name || '—'}
                         {isSelf && <span className="ms-2 text-xs text-muted">{t('labelYou')}</span>}
                       </span>
-                      <span className="block truncate font-mono text-[11px] text-muted">
+                      <span className="block truncate identifier text-[11px] text-muted">
                         {account.email}
                       </span>
                     </LeadCell>
@@ -157,7 +157,7 @@ export default function AccountsPage() {
                         {account.is_active ? t('activeState') : t('deactivatedState')}
                       </Badge>
                     </Cell>
-                    <Cell className="whitespace-nowrap font-mono text-xs text-muted">
+                    <Cell className="whitespace-nowrap identifier text-xs text-muted">
                       {formatDate(account.last_login_at)}
                     </Cell>
                     <Cell className="text-end">

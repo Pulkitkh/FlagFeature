@@ -1,16 +1,22 @@
+/*
+ * Each tone's edge is now its own palette step rather than the text colour at
+ * 25% opacity. An opacity guess drifts: on a dark surface `border-good/25`
+ * lands somewhere between the fill and the page depending on what is behind
+ * it, so the same badge had a different edge on every background.
+ */
 const TONES = {
   neutral: { classes: 'border-border bg-surfaceMuted text-muted', dot: 'bg-muted' },
-  accent: { classes: 'border-accent/25 bg-accentSoft text-accentDark', dot: 'bg-accent' },
-  good: { classes: 'border-good/25 bg-goodSoft text-good', dot: 'bg-good' },
-  warn: { classes: 'border-warn/25 bg-warnSoft text-warn', dot: 'bg-warn' },
-  bad: { classes: 'border-bad/25 bg-badSoft text-bad', dot: 'bg-bad' },
+  accent: { classes: 'border-accentMuted bg-accentSoft text-accentDark', dot: 'bg-accent' },
+  good: { classes: 'border-goodBorder bg-goodSoft text-good', dot: 'bg-good' },
+  warn: { classes: 'border-warnBorder bg-warnSoft text-warn', dot: 'bg-warn' },
+  bad: { classes: 'border-badBorder bg-badSoft text-bad', dot: 'bg-bad' },
   ink: { classes: 'border-ink bg-ink text-surface', dot: 'bg-surface' },
 }
 
 /**
  * `mono` is for badges whose content is an API value rather than prose — a
- * count, a key, a state code. Keeping those in the mono face is how the console
- * signals "this came from the server" without a second colour.
+ * count, a key, a state code. Those get the identifier treatment (medium
+ * weight, opened tracking, tabular figures) so they read as literal values.
  */
 export default function Badge({
   children,
@@ -25,7 +31,7 @@ export default function Badge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold leading-5 tracking-tight ${
-        mono ? 'font-mono tnum' : ''
+        mono ? 'identifier tnum' : ''
       } ${t.classes} ${className}`}
     >
       {dot && <span className={`signal-dot ${live ? 'signal-dot--live' : ''} ${t.dot}`} />}

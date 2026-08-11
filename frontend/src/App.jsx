@@ -1,5 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import SkipLink from './components/SkipLink'
 import RequireAuth from './components/RequireAuth'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EnvironmentProvider } from './context/EnvironmentContext'
@@ -21,11 +22,24 @@ import AccountsPage from './pages/AccountsPage'
  * would fire a guaranteed 401 on every page load.
  */
 function Console() {
+  const location = useLocation()
+
   return (
     <EnvironmentProvider>
-      <div className="flex h-screen w-screen overflow-hidden">
+      <SkipLink />
+      <div className="h-screen-dvh flex w-full overflow-hidden">
         <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+        {/*
+          Keyed on the path so React tears down and rebuilds on navigation,
+          which is what re-triggers the entrance animation — without the key
+          the element persists and a route change happens with no transition
+          at all. `id` is the skip link's destination.
+        */}
+        <main
+          id="main-content"
+          key={location.pathname}
+          className="flex flex-1 animate-page-in flex-col overflow-hidden"
+        >
           <Routes>
             <Route path="/flags" element={<FlagsPage />} />
             <Route path="/flags/:key" element={<FlagDetailPage />} />
@@ -43,7 +57,7 @@ function Console() {
             />
             <Route path="*" element={<Navigate to="/flags" replace />} />
           </Routes>
-        </div>
+        </main>
       </div>
     </EnvironmentProvider>
   )

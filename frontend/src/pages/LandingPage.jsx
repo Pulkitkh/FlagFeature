@@ -9,6 +9,7 @@ import {
   ScrollText,
   Terminal,
 } from 'lucide-react'
+import { LogoTile } from '../components/Logo'
 import { API_BASE_URL } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useT } from '../context/LanguageContext'
@@ -48,14 +49,11 @@ export default function LandingPage() {
     // page mostly untinted below the fold. This gradient scrolls with the
     // document, so the violet carries down into the hero instead of stopping
     // at the header.
-    <div className="min-h-screen bg-gradient-to-b from-accentSoft to-transparent to-55%">
+    <div className="min-h-screen-dvh bg-gradient-to-b from-accentSoft to-transparent to-55%">
       <header className="sticky top-0 z-20 border-b border-border bg-bg/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-4 px-6">
           <div className="flex items-center gap-2.5">
-            <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-ink text-surface">
-              <Flag className="h-3.5 w-3.5" strokeWidth={2.5} />
-              <span className="signal-dot signal-dot--live absolute -end-1 -top-1 bg-accent ring-2 ring-bg" />
-            </span>
+            <LogoTile className="h-8 w-8" />
             <span>
               <span className="block font-display text-[15px] font-semibold leading-none tracking-[-0.02em] text-ink">
                 FlagForge
@@ -124,14 +122,14 @@ export default function LandingPage() {
               the way it happens, and the divider is the round trip. */}
           <div className="animate-rise-in overflow-hidden rounded-xl border border-border bg-surface shadow-card">
             <div className="flex items-center justify-between border-b border-border bg-surfaceMuted px-4 py-2">
-              <span className="font-mono text-[11px] text-muted">evaluate.http</span>
+              <span className="font-code text-[11px] text-muted">evaluate.http</span>
               <span className="flex gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-borderStrong" />
                 <span className="h-2 w-2 rounded-full bg-borderStrong" />
                 <span className="h-2 w-2 rounded-full bg-good" />
               </span>
             </div>
-            <pre dir="ltr" className="overflow-x-auto px-5 py-4 font-mono text-[12px] leading-relaxed text-ink">
+            <pre dir="ltr" className="overflow-x-auto px-5 py-4 font-code text-[12px] leading-relaxed text-ink">
               {SAMPLE_REQUEST}
             </pre>
             <div className="flex items-center gap-3 border-y border-border bg-surfaceMuted px-5 py-1.5">
@@ -139,7 +137,7 @@ export default function LandingPage() {
               <ArrowRight className="h-3 w-3 rotate-90 text-muted" />
               <span className="h-px flex-1 bg-border" />
             </div>
-            <pre dir="ltr" className="overflow-x-auto px-5 py-4 font-mono text-[12px] leading-relaxed text-ink">
+            <pre dir="ltr" className="overflow-x-auto px-5 py-4 font-code text-[12px] leading-relaxed text-ink">
               {SAMPLE_RESPONSE}
             </pre>
           </div>

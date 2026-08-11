@@ -35,7 +35,7 @@ export default function FlagTable({ flags, loading, error }) {
               <span
                 className={`signal-dot ${flag.enabled ? 'signal-dot--live bg-good' : 'bg-muted'}`}
               />
-              <span className="font-mono text-[13px] font-semibold text-ink">{flag.key}</span>
+              <span className="identifier text-[13px] font-semibold text-ink">{flag.key}</span>
             </div>
           </LeadCell>
           <Cell>

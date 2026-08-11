@@ -75,7 +75,7 @@ export default function DecisionTrace({ result, loading }) {
               }`}
             >
               <span
-                className={`font-mono text-[10px] tnum ${isActive ? 'text-bg/70' : 'text-muted/70'}`}
+                className={`identifier text-[11px] tnum ${isActive ? 'text-bg/70' : 'text-muted/70'}`}
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
