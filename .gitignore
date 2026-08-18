@@ -22,3 +22,6 @@ Thumbs.db
 # Python packaging
 *.egg-info/
 build/
+
+# Generated deliverable — handed over directly, not tracked here
+FlagForge_Internship_Completion_Report.docx
